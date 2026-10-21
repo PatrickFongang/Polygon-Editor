@@ -1,8 +1,8 @@
 # Kompilator
 CXX = g++
 
-# Flagi kompilacji (c++17, ostrzeżenia, ścieżki do nagłówków)
-CXXFLAGS = -std=c++17 -Wall -g -fsanitize=address -I./imgui -I./src -I./SFML/include
+# Flagi kompilacji (c++20, ostrzeżenia, ścieżki do nagłówków)
+CXXFLAGS = -std=c++20 -Wall -g -I./imgui -I./src -I./SFML/include
 
 # Pliki źródłowe (Twoje pliki + pliki biblioteki)
 SRC = src/main.cpp \

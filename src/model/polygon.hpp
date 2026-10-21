@@ -10,6 +10,9 @@ class Polygon
     private:
         std::vector<std::unique_ptr<Vertex>> vertices; // List of vertices in the polygon
         std::vector<std::unique_ptr<Edge>> edges;      // List of edges in the polygon
+
+        std::pair<Edge*, Edge*> findEdgePair(Vertex* middleVertex);
+
     public:
         bool isSelected = false; // Flag to indicate if the polygon is selected
         bool isHovered = false;  // Flag to indicate if the polygon is hovered over
