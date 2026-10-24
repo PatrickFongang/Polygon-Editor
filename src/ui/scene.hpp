@@ -1,35 +1,69 @@
 #pragma once
 
+#include <SFML/Graphics.hpp>
 #include <vector>
 #include <memory>
-#include <SFML/Graphics.hpp>
 #include "../model/polygon.hpp"
-// #include "constraint.hpp" // in the future, when constraints are implemented
+#include "../enum/continuity.hpp"
+#include "../enum/edge_type.hpp"
 
-class Scene
-{
-    private:
-        std::vector<std::unique_ptr<Polygon>> polygons;
-        // std::vector<std::unique_ptr<Constraint>> constraints;
-
-        Vertex* selectedVertex = nullptr;
-        Edge* selectedEdge = nullptr;
-        sf::Vector2f* selectedControlPoint = nullptr; // Pointer to the selected control point of a Bezier edge
-
-        bool useBresenham = false; 
-
-    public:
-        Scene();
-        ~Scene();
+enum class DrawAlgorithm {
+    Library = 0,
+    Bresenham = 1
+};
 
 
-        void loadDefaultScene();
+class Scene {
+public:
+    Scene();
+    ~Scene() = default;
 
-        void draw(sf::RenderWindow& window);
+    // Inicjalizacja sceny początkowej (Wymaganie 8)
+    void initPredefinedScene();
+    void clearScene();
 
-        void handleMousePress(const sf::Vector2f& mousePos, bool rightClick = false);
-        void handleMouseDrag(const sf::Vector2f& mousePos);
-        void handleMouseRelease();
+    // Obsługa wejścia (Wymaganie 6)
+    void handleMouseEvent(const sf::Event& event, const sf::RenderWindow& window);
+    void handleKeyboardEvent(const sf::Event& event);
 
-        void solveConstraints(); 
+    // Renderowanie (Wymagania 5, 7, 9)
+    void render(sf::RenderWindow& window);
+    void renderUI();
+
+private:
+    std::vector<std::unique_ptr<Polygon>> polygons;
+
+    // Ustawienia rysowania i grupy projektowej
+    DrawAlgorithm currentAlgorithm = DrawAlgorithm::Library;
+
+    // Stan interakcji myszy (przeciąganie LPM)
+    bool isDraggingVertex = false;
+    bool isDraggingControlPoint = false;
+    bool isDraggingPolygon = false;
+    sf::Vector2f lastMousePos;
+
+    // Wskaźniki/indeksy aktualnie wybranych elementów (do edycji i relacji)
+    int selectedPolygonIdx = -1;
+    int selectedVertexIdx = -1;
+    int selectedControlPointIdx = -1; // 0 lub 1 dla wybranej krawędzi Béziera
+    
+    // Para krawędzi do nakładania ograniczeń (np. równoległość / prostopadłość)
+    struct EdgeRef {
+        int polygonIdx = -1;
+        int edgeIdx = -1;
+        bool isValid() const { return polygonIdx >= 0 && edgeIdx >= 0; }
+    };
+    EdgeRef primarySelectedEdge;
+    EdgeRef secondarySelectedEdge;
+
+    // Zmienne pomocnicze dla UI
+    float targetEdgeLength = 100.0f;
+    bool showDocumentationWindow = false;
+
+    // Pomocnicze metody dodawania wielokątów w kodzie
+    Polygon* addPolygon(const std::vector<sf::Vector2f>& points);
+
+    // Metody rysujące (Wymaganie 5)
+    void drawLineBresenham(sf::RenderTarget& target, sf::Vector2f p1, sf::Vector2f p2, sf::Color color);
+    void drawBezierIncremental(sf::RenderTarget& target, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f p3, sf::Color color);
 };

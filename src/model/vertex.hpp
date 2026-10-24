@@ -20,9 +20,9 @@ class Vertex
         bool isHovered = false;  // Flag to indicate if the vertex is hovered over
         bool hasPredefinedContinuity = false; // Flag to indicate if the vertex has a predefined continuity
 
-        Vertex() : position(0.f, 0.f), color(sf::Color::Black), continuity(Continuity::G0) {}
+        Vertex() : position(0.f, 0.f), color(sf::Color::Black), continuity(Continuity::G1) {}
 
-        Vertex(sf::Vector2f pos, sf::Color col, Continuity cont = Continuity::G0)
+        Vertex(sf::Vector2f pos, sf::Color col = sf::Color::Black, Continuity cont = Continuity::G1)
             : position(pos), color(col), continuity(cont) {}
 
         sf::Vector2f getPosition() const { return position; }

@@ -1,6 +1,6 @@
 #include "polygon.hpp"
 
-void Polygon::splitEdge(size_t edgeIndex, const sf::Vector2f &newVertexPosition, const sf::Color &newVertexColor, Continuity newVertexContinuity = Continuity::G0)
+void Polygon::splitEdge(size_t edgeIndex, const sf::Vector2f &newVertexPosition, const sf::Color &newVertexColor, Continuity newVertexContinuity)
 {
     if (edgeIndex >= edges.size())
     {
