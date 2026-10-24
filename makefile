@@ -1,10 +1,10 @@
 # Kompilator
 CXX = g++
 
-# Flagi kompilacji (c++20, ostrzeżenia, ścieżki do nagłówków)
-CXXFLAGS = -std=c++20 -Wall -g -I./imgui -I./src -I./SFML/include
+# Flagi kompilacji (c++20, ostrzeżenia, symbole debugowania, AddressSanitizer)
+CXXFLAGS = -std=c++20 -Wall -g -fsanitize=address -I./imgui -I./src
 
-# Pliki źródłowe (Twoje pliki + pliki biblioteki)
+# Pliki źródłowe (Twoje pliki + pliki biblioteki ImGui)
 SRC = src/main.cpp \
       imgui/imgui.cpp \
       imgui/imgui_draw.cpp \
@@ -15,16 +15,16 @@ SRC = src/main.cpp \
 # Pliki obiektowe (zamienia .cpp na .o)
 OBJ = $(SRC:.cpp=.o)
 
-# Flagi linkera dla Windows (MinGW)
-LDFLAGS = -L./SFML/lib -lsfml-graphics -lsfml-window -lsfml-system -lopengl32
+# Flagi linkera dla Linuksa (AddressSanitizer, systemowe SFML i OpenGL)
+LDFLAGS = -fsanitize=address -lsfml-graphics -lsfml-window -lsfml-system -lGL
 
-# Nazwa pliku wykonywalnego z rozszerzeniem Windowsowym
-EXEC = app.exe
+# Nazwa pliku wykonywalnego (na Linuksie przyjęto brak rozszerzenia .exe)
+EXEC = app
 
 # Główna reguła
 all: $(EXEC)
 
-# Łączenie wszystkiego w plik wykonywalny .exe
+# Łączenie wszystkiego w plik wykonywalny
 $(EXEC): $(OBJ)
 	$(CXX) $(OBJ) -o $@ $(LDFLAGS)
 
@@ -32,7 +32,6 @@ $(EXEC): $(OBJ)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Czyszczenie dostosowane do Windowsa (PowerShell)
-# Czyszczenie (znak '-' na początku linijki nakazuje make ignorować błędy, gdy plików już nie ma)
+# Czyszczenie dostosowane do Linuksa
 clean:
-	-powershell -NoProfile -Command "Remove-Item src/*.o, imgui/*.o, $(EXEC) -Force -ErrorAction SilentlyContinue; exit 0"
+	rm -f src/*.o imgui/*.o $(EXEC)

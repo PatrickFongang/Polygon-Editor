@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <SFML/System/Vector2.hpp>
-#include "../enum/EdgeType.hpp"
+#include "../enum/edge_type.hpp"
 
 
 class Vertex; // Forward declaration of Vertex class
