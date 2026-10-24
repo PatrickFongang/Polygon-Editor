@@ -5,7 +5,6 @@
 #include <memory>
 #include "../model/polygon.hpp"
 #include "../enum/continuity.hpp"
-#include "../enum/edge_type.hpp"
 
 enum class DrawAlgorithm {
     Library = 0,
@@ -59,11 +58,4 @@ private:
     // Zmienne pomocnicze dla UI
     float targetEdgeLength = 100.0f;
     bool showDocumentationWindow = false;
-
-    // Pomocnicze metody dodawania wielokątów w kodzie
-    Polygon* addPolygon(const std::vector<sf::Vector2f>& points);
-
-    // Metody rysujące (Wymaganie 5)
-    void drawLineBresenham(sf::RenderTarget& target, sf::Vector2f p1, sf::Vector2f p2, sf::Color color);
-    void drawBezierIncremental(sf::RenderTarget& target, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f p3, sf::Color color);
 };

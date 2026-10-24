@@ -14,16 +14,6 @@ void Scene::clearScene() {
     secondarySelectedEdge = {-1, -1};
 }
 
-// Adds polygon to the scene and returns a pointer to it. The polygon is constructed from a list of points.
-Polygon* Scene::addPolygon(const std::vector<sf::Vector2f>& points) {
-    auto poly_ptr = std::make_unique<Polygon>();
-    for (const auto& pt : points) {
-        poly_ptr->addVertex(pt.x, pt.y); 
-    }
-    polygons.push_back(std::move(poly_ptr));
-    return polygons.back().get(); 
-}
-
 // Predefined Scene
 void Scene::initPredefinedScene() {
     clearScene();
@@ -72,66 +62,6 @@ void Scene::handleKeyboardEvent(const sf::Event& event) {
             showDocumentationWindow = !showDocumentationWindow;
         }
     }
-}
-
-// Drawing Algorithms
-void Scene::drawLineBresenham(sf::RenderTarget& target, sf::Vector2f p1, sf::Vector2f p2, sf::Color color) {
-    int x0 = static_cast<int>(std::round(p1.x));
-    int y0 = static_cast<int>(std::round(p1.y));
-    int x1 = static_cast<int>(std::round(p2.x));
-    int y1 = static_cast<int>(std::round(p2.y));
-
-    int dx = std::abs(x1 - x0);
-    int dy = -std::abs(y1 - y0);
-    int sx = (x0 < x1) ? 1 : -1;
-    int sy = (y0 < y1) ? 1 : -1;
-    int err = dx + dy;
-
-    sf::VertexArray pixels(sf::Points);
-
-    while (true) {
-        pixels.append(sf::Vertex(sf::Vector2f(static_cast<float>(x0), static_cast<float>(y0)), color));
-        if (x0 == x1 && y0 == y1) break;
-        int e2 = 2 * err;
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-    target.draw(pixels);
-}
-
-void Scene::drawBezierIncremental(sf::RenderTarget& target, sf::Vector2f V0, sf::Vector2f V1, sf::Vector2f V2, sf::Vector2f V3, sf::Color color) {
-    const int steps = 60;
-    const float dt = 1.0f / steps;
-    const float dt2 = dt * dt;
-    const float dt3 = dt2 * dt;
-
-    sf::Vector2f A = -V0 + 3.f * V1 - 3.f * V2 + V3;
-    sf::Vector2f B = 3.f * V0 - 6.f * V1 + 3.f * V2;
-    sf::Vector2f C = -3.f * V0 + 3.f * V1;
-    sf::Vector2f D = V0;
-
-    sf::Vector2f P = D;
-    sf::Vector2f dP = A * dt3 + B * dt2 + C * dt;
-    sf::Vector2f ddP = 6.f * A * dt3 + 2.f * B * dt2;
-    sf::Vector2f dddP = 6.f * A * dt3;
-
-    sf::VertexArray curve(sf::LineStrip, steps + 1);
-    curve[0] = sf::Vertex(P, color);
-
-    for (int i = 1; i <= steps; ++i) {
-        P += dP;
-        dP += ddP;
-        ddP += dddP;
-        curve[i] = sf::Vertex(P, color);
-    }
-
-    target.draw(curve);
 }
 
 void Scene::render(sf::RenderWindow& window) {

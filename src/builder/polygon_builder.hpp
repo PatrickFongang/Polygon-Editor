@@ -2,9 +2,8 @@
 #include <memory>
 #include "../model/polygon.hpp"
 #include "../model/vertex.hpp"
-#include "../model/edge.hpp"
+#include "../model/edge/edge.hpp"
 #include "../enum/continuity.hpp"
-#include "../enum/edge_type.hpp"
 
 class PolygonBuilder {
 private:
@@ -16,8 +15,9 @@ public:
     PolygonBuilder();
     
     PolygonBuilder& addVertex(float x, float y, Continuity continuity = Continuity::G0);
-    PolygonBuilder& withLastEdgeAs(EdgeType type);
-    PolygonBuilder& closePolygon(EdgeType closingEdgeType = EdgeType::Line);
+    PolygonBuilder& withLastEdgeAsBezier();
+    PolygonBuilder& withLastEdgeAsArc();
+    PolygonBuilder& closePolygon();
     
     std::unique_ptr<Polygon> build();
 };

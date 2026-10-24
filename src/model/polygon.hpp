@@ -3,74 +3,75 @@
 #include <vector>
 #include <memory>
 #include "vertex.hpp"
-#include "edge.hpp"
+#include "edge/edge.hpp"
 
 class Polygon
 {
-    private:
-        std::vector<std::unique_ptr<Vertex>> vertices; // List of vertices in the polygon
-        std::vector<std::unique_ptr<Edge>> edges;      // List of edges in the polygon
+public:
+    bool isSelected = false; // Flag to indicate if the polygon is selected
+    bool isHovered = false;  // Flag to indicate if the polygon is hovered over
 
-        std::pair<Edge*, Edge*> findEdgePair(Vertex* middleVertex);
+    void splitEdge(size_t edgeIndex, const sf::Vector2f &newVertexPosition, const sf::Color &newVertexColor, Continuity newVertexContinuity = Continuity::G0);
+    void removeVertex(size_t vertexIndex);
+    void replaceLastEdge(std::unique_ptr<Edge> newEdge);
 
-    public:
-        bool isSelected = false; // Flag to indicate if the polygon is selected
-        bool isHovered = false;  // Flag to indicate if the polygon is hovered over
+    Polygon() = default;
 
-        void splitEdge(size_t edgeIndex, const sf::Vector2f& newVertexPosition, const sf::Color& newVertexColor, Continuity newVertexContinuity = Continuity::G0);
-        void removeVertex(size_t vertexIndex);
+    void addVertex(std::unique_ptr<Vertex> vertex)
+    {
+        vertices.push_back(std::move(vertex));
+    }
 
-        Polygon() = default;
+    void addVertex(float x, float y)
+    {
+        vertices.push_back(std::make_unique<Vertex>(sf::Vector2f(x, y)));
+    }
 
-        void addVertex(std::unique_ptr<Vertex> vertex)
+    void addEdge(std::unique_ptr<Edge> edge)
+    {
+        edges.push_back(std::move(edge));
+    }
+
+    const std::vector<std::unique_ptr<Vertex>> &getVertices() const
+    {
+        return vertices;
+    }
+
+    const std::vector<std::unique_ptr<Edge>> &getEdges() const
+    {
+        return edges;
+    }
+
+    Vertex *getVertex(size_t index) const
+    {
+        if (index < vertices.size())
         {
-            vertices.push_back(std::move(vertex));
+            return vertices[index].get();
         }
-        
-        void addVertex(float x, float y)
-        {
-            vertices.push_back(std::make_unique<Vertex>(sf::Vector2f(x, y)));
-        }
+        return nullptr;
+    }
 
-        void addEdge(std::unique_ptr<Edge> edge)
+    Edge *getEdge(size_t index) const
+    {
+        if (index < edges.size())
         {
-            edges.push_back(std::move(edge));
+            return edges[index].get();
         }
+        return nullptr;
+    }
 
-        const std::vector<std::unique_ptr<Vertex>>& getVertices() const
-        {
-            return vertices;
-        }
+    const size_t getVertexCount() const
+    {
+        return vertices.size();
+    }
+    const size_t getEdgeCount() const
+    {
+        return edges.size();
+    }
 
-        const std::vector<std::unique_ptr<Edge>>& getEdges() const
-        {
-            return edges;
-        }
+private:
+    std::vector<std::unique_ptr<Vertex>> vertices; // List of vertices in the polygon
+    std::vector<std::unique_ptr<Edge>> edges;      // List of edges in the polygon
 
-        Vertex* getVertex(size_t index) const
-        {
-            if (index < vertices.size())
-            {
-                return vertices[index].get();
-            }
-            return nullptr; 
-        }
-
-        Edge* getEdge(size_t index) const
-        {
-            if (index < edges.size())
-            {
-                return edges[index].get();
-            }
-            return nullptr; 
-        }
-
-        const size_t getVertexCount() const
-        {
-            return vertices.size();
-        }
-        const size_t getEdgeCount() const
-        {
-            return edges.size();
-        }
+    std::pair<Edge *, Edge *> findEdgePair(Vertex *middleVertex);
 };
