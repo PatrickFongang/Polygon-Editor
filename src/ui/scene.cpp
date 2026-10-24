@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include <cmath>
 #include <iostream>
+#include "../builder/polygon_director.hpp"
 
 Scene::Scene() {}
 
@@ -27,24 +28,10 @@ Polygon* Scene::addPolygon(const std::vector<sf::Vector2f>& points) {
 void Scene::initPredefinedScene() {
     clearScene();
 
-    Polygon* poly1 = addPolygon({
-        {150.f, 200.f}, 
-        {400.f, 200.f}, 
-        {400.f, 450.f}, 
-        {150.f, 450.f}  
-    });
+    PolygonDirector director;
 
-    Continuity defaultCont = Continuity::G1;
-
-
-
-    Polygon* poly2 = addPolygon({
-        {600.f, 200.f}, 
-        {800.f, 150.f}, 
-        {900.f, 300.f}, 
-        {800.f, 500.f}, 
-        {600.f, 450.f}  
-    });
+    polygons.push_back(director.createDemoPolygon1());
+    polygons.push_back(director.createDemoPolygon2());
 
 }
 

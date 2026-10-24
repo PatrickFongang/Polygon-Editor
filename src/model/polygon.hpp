@@ -22,6 +22,11 @@ class Polygon
 
         Polygon() = default;
 
+        void addVertex(std::unique_ptr<Vertex> vertex)
+        {
+            vertices.push_back(std::move(vertex));
+        }
+        
         void addVertex(float x, float y)
         {
             vertices.push_back(std::make_unique<Vertex>(sf::Vector2f(x, y)));
