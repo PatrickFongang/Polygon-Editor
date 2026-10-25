@@ -4,65 +4,65 @@
 
 #include "imgui.h"
 #include "imgui-SFML.h"
-#include "ui/scene.hpp"
+
+#include "scene/scene.hpp"
+#include "ui/ui_manager.hpp"
+#include "ui/input_handler.hpp"
 
 int main() {
-    // 1. Inicjalizacja okna SFML
+    // initialize SFML window
     sf::ContextSettings settings;
     settings.antialiasingLevel = 4;
     sf::RenderWindow window(sf::VideoMode(1280, 800), "Edytor Wielokatow - Projekt GK", sf::Style::Default, settings);
     window.setFramerateLimit(60);
 
-    // 2. Inicjalizacja ImGui-SFML
+    // initialize ImGui-SFML
     if (!ImGui::SFML::Init(window)) {
         return -1;
     }
 
-    // 3. Stworzenie sceny i załadowanie predefiniowanego układu początkowego
-    Scene scene;
+    // initialize the scene with a default drawer
+    auto initialDrawer = std::make_unique<LibraryDrawer>(window);
+    Scene scene(std::move(initialDrawer));
     scene.initPredefinedScene();
+
+    UIManager uiManager;
+    InputHandler inputHandler;
+    
+    bool showDocs = false; 
 
     sf::Clock deltaClock;
 
-    // 4. Główna pętla programu
+    // main loop
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            // Przekazanie zdarzeń do ImGui
             ImGui::SFML::ProcessEvent(window, event);
 
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
 
-            // Blokada przekazywania kliknięć na scenę, jeśli kursor znajduje się nad oknem ImGui
             bool imguiCapturesMouse = ImGui::GetIO().WantCaptureMouse;
             bool imguiCapturesKeyboard = ImGui::GetIO().WantCaptureKeyboard;
 
-            if (!imguiCapturesMouse) {
-                scene.handleMouseEvent(event, window);
-            }
-            if (!imguiCapturesKeyboard) {
-                scene.handleKeyboardEvent(event);
+            if (!imguiCapturesMouse && !imguiCapturesKeyboard) {
+                inputHandler.handleEvent(event, window, scene, showDocs);
             }
         }
 
-        // 5. Aktualizacja stanu ImGui
         ImGui::SFML::Update(window, deltaClock.restart());
 
-        // 6. Rysowanie panelu sterowania i dokumentacji (ImGui)
-        scene.renderUI(window);
+        uiManager.renderUI(scene, window, showDocs);
 
-        // 7. Renderowanie zawartości okna
-        window.clear(sf::Color(30, 30, 35)); // Ciemne, czytelne tło
+        window.clear(sf::Color(30, 30, 35)); 
         
-        scene.render(window);                // Rysowanie wielokątów, krzywych i ikon ograniczeń
-        ImGui::SFML::Render(window);         // Rysowanie interfejsu na wierzchu
+        scene.render(window);                
+        ImGui::SFML::Render(window);         
 
         window.display();
     }
 
-    // 8. Zwolnienie zasobów
     ImGui::SFML::Shutdown();
     return 0;
 }
