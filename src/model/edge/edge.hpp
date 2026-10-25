@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <SFML/System/Vector2.hpp>
+#include "../../utils/drawer.hpp"
 
 
 class Vertex; // Forward declaration of Vertex class
@@ -12,7 +13,7 @@ class Edge
         Edge(Vertex* vertex1, Vertex* vertex2) : v1(vertex1), v2(vertex2) {}
         virtual ~Edge() = default; 
 
-        virtual void draw() const = 0;
+        virtual void draw(const Drawer& drawer) const = 0;
 
         Vertex* getVertex1() const { return v1; }
         void setVertex1(Vertex* vertex) { v1 = vertex; }

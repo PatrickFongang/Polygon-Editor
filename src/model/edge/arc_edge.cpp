@@ -4,7 +4,7 @@
 #include "../vertex.hpp"
 
 
-void ArcEdge::draw() const {
+void ArcEdge::draw(const Drawer& drawer) const {
     sf::Vector2f p1(v1->getPosition().x, v1->getPosition().y);
     sf::Vector2f p2(v2->getPosition().x, v2->getPosition().y);
 
@@ -30,7 +30,7 @@ void ArcEdge::draw() const {
             center.y + radius * std::sin(angle)
         );
 
-        // Draw line segment from prevPos to currentPos
+        drawer.drawLine(prevPos.x, prevPos.y, currentPos.x, currentPos.y);
 
         prevPos = currentPos;
     }

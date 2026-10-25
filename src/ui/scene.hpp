@@ -6,11 +6,6 @@
 #include "../model/polygon.hpp"
 #include "../enum/continuity.hpp"
 
-enum class DrawAlgorithm {
-    Library = 0,
-    Bresenham = 1
-};
-
 
 class Scene {
 public:
@@ -27,13 +22,14 @@ public:
 
     // Renderowanie (Wymagania 5, 7, 9)
     void render(sf::RenderWindow& window);
-    void renderUI();
+    void renderUI(sf::RenderWindow& window);
 
 private:
     std::vector<std::unique_ptr<Polygon>> polygons;
 
-    // Ustawienia rysowania i grupy projektowej
-    DrawAlgorithm currentAlgorithm = DrawAlgorithm::Library;
+    // Current drawing stategy (Library or Bresenham)
+    std::unique_ptr<Drawer> currentDrawer; 
+
 
     // Stan interakcji myszy (przeciąganie LPM)
     bool isDraggingVertex = false;

@@ -51,7 +51,7 @@ int main() {
         ImGui::SFML::Update(window, deltaClock.restart());
 
         // 6. Rysowanie panelu sterowania i dokumentacji (ImGui)
-        scene.renderUI();
+        scene.renderUI(window);
 
         // 7. Renderowanie zawartości okna
         window.clear(sf::Color(30, 30, 35)); // Ciemne, czytelne tło

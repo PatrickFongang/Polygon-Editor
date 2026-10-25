@@ -2,7 +2,7 @@
 #include "bezier_edge.hpp"
 #include "../vertex.hpp"
 
-void BezierEdge::draw() const {
+void BezierEdge::draw(const Drawer& drawer) const {
     const int N = 50; 
     const float dt = 1.0f / N;
 
@@ -34,7 +34,7 @@ void BezierEdge::draw() const {
         delta1 += delta2;
         delta2 += delta3;
 
-        // Draw line segment from prevPos to currentPos
+        drawer.drawLine(prevPos.x, prevPos.y, currentPos.x, currentPos.y);
         
         prevPos = currentPos;
     }

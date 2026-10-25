@@ -14,5 +14,5 @@ public:
     }
 
     // incremental drawing method for Bezier curve
-    void draw() const override;
+    void draw(const Drawer& drawer) const override;
 };
