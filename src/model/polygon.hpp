@@ -8,14 +8,19 @@
 class Polygon
 {
 public:
-    bool isSelected = false; // Flag to indicate if the polygon is selected
-    bool isHovered = false;  // Flag to indicate if the polygon is hovered over
-
-    void splitEdge(size_t edgeIndex, const sf::Vector2f &newVertexPosition, const sf::Color &newVertexColor, Continuity newVertexContinuity = Continuity::G0);
-    void removeVertex(size_t vertexIndex);
-    void replaceLastEdge(std::unique_ptr<Edge> newEdge);
+    bool isSelected = false;
+    bool isHovered = false;
 
     Polygon() = default;
+
+    void splitEdge(size_t edgeIndex, const sf::Vector2f &newVertexPosition, const sf::Color &newVertexColor = sf::Color::White, Continuity newVertexContinuity = Continuity::G0);
+    void splitEdgeAtMidpoint(size_t edgeIndex);
+    bool removeVertex(size_t vertexIndex);
+    void replaceLastEdge(std::unique_ptr<Edge> newEdge);
+    void replaceEdge(size_t edgeIndex, std::unique_ptr<Edge> newEdge);
+
+    void moveVertex(size_t vertexIndex, const sf::Vector2f &newPosition);
+    void translate(const sf::Vector2f &delta);
 
     void addVertex(std::unique_ptr<Vertex> vertex)
     {
@@ -30,48 +35,29 @@ public:
     void addEdge(std::unique_ptr<Edge> edge)
     {
         edges.push_back(std::move(edge));
+        updateVertexEdgeLinks();
     }
 
-    const std::vector<std::unique_ptr<Vertex>> &getVertices() const
-    {
-        return vertices;
-    }
-
-    const std::vector<std::unique_ptr<Edge>> &getEdges() const
-    {
-        return edges;
-    }
+    const std::vector<std::unique_ptr<Vertex>> &getVertices() const { return vertices; }
+    const std::vector<std::unique_ptr<Edge>> &getEdges() const { return edges; }
 
     Vertex *getVertex(size_t index) const
     {
-        if (index < vertices.size())
-        {
-            return vertices[index].get();
-        }
-        return nullptr;
+        return (index < vertices.size()) ? vertices[index].get() : nullptr;
     }
 
     Edge *getEdge(size_t index) const
     {
-        if (index < edges.size())
-        {
-            return edges[index].get();
-        }
-        return nullptr;
+        return (index < edges.size()) ? edges[index].get() : nullptr;
     }
 
-    const size_t getVertexCount() const
-    {
-        return vertices.size();
-    }
-    const size_t getEdgeCount() const
-    {
-        return edges.size();
-    }
+    size_t getVertexCount() const { return vertices.size(); }
+    size_t getEdgeCount() const { return edges.size(); }
 
 private:
-    std::vector<std::unique_ptr<Vertex>> vertices; // List of vertices in the polygon
-    std::vector<std::unique_ptr<Edge>> edges;      // List of edges in the polygon
+    std::vector<std::unique_ptr<Vertex>> vertices;
+    std::vector<std::unique_ptr<Edge>> edges;
 
     std::pair<Edge *, Edge *> findEdgePair(Vertex *middleVertex);
+    void updateVertexEdgeLinks();
 };
