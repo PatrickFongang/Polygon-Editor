@@ -8,11 +8,19 @@ private:
     std::unique_ptr<Vertex> controlPoint2;
 
 public:
-    BezierEdge(Vertex* v1, Vertex* v2) : Edge(v1, v2) {
-        controlPoint1 = std::make_unique<Vertex>(sf::Vector2f((v1->getPosition().x + v2->getPosition().x) / 2, v1->getPosition().y));
-        controlPoint2 = std::make_unique<Vertex>(sf::Vector2f((v1->getPosition().x + v2->getPosition().x) / 1.5, v2->getPosition().y + 50.0f));
-    }
+    BezierEdge(Vertex* v1, Vertex* v2);
 
-    // incremental drawing method for Bezier curve
+    Vertex* getControlPoint1() const { return controlPoint1.get(); }
+    Vertex* getControlPoint2() const { return controlPoint2.get(); }
+
     void draw(const Drawer& drawer) const override;
+
+    Vertex* hitTestControlPoint(const sf::Vector2f& pt, float radius) const override;
+
+    void translateControlPoints(const sf::Vector2f& delta) override;
+
+    void onEndpointMoved(Vertex* movedVertex, const sf::Vector2f& delta) override;
+
+    float distanceToPoint(const sf::Vector2f& pt) const override;
+    void drawHelpers(sf::RenderWindow& window) const override;
 };

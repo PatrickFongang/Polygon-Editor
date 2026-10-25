@@ -18,19 +18,25 @@ public:
 class G0Strategy : public ContinuityStrategy {
 public:
     Continuity getType() const override { return Continuity::G0; }
-    void enforce(Vertex*, Edge*, Edge*, bool) const override;
+    void enforce(Vertex*, Edge*, Edge*, bool) const override{
+
+    }
 };
 
 class G1Strategy : public ContinuityStrategy {
 public:
     Continuity getType() const override { return Continuity::G1; }
-    void enforce(Vertex* vertex, Edge* prevEdge, Edge* nextEdge, bool movedFromPrev) const override;
+    void enforce(Vertex* vertex, Edge* prevEdge, Edge* nextEdge, bool movedFromPrev) const override{
+
+    }
 };
 
 class C1Strategy : public ContinuityStrategy {
 public:
     Continuity getType() const override { return Continuity::C1; }
-    void enforce(Vertex* vertex, Edge* prevEdge, Edge* nextEdge, bool movedFromPrev) const override;
+    void enforce(Vertex* vertex, Edge* prevEdge, Edge* nextEdge, bool movedFromPrev) const override{
+        
+    }
 };
 
 inline std::unique_ptr<ContinuityStrategy> ContinuityStrategy::create(Continuity type) {
