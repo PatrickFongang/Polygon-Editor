@@ -2,7 +2,7 @@
 
 void BresenhamDrawer::drawPixel(int x, int y) const
 {
-    sf::Vertex pixel(sf::Vector2f(x, y), sf::Color::White);
+    sf::Vertex pixel(sf::Vector2f(x, y), currentColor);
     window.draw(&pixel, 1, sf::Points);
 }
 

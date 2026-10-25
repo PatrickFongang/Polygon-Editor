@@ -24,15 +24,35 @@ void Scene::render(sf::RenderWindow& window) const {
     for (size_t pIdx = 0; pIdx < polygons.size(); ++pIdx) {
         const auto& poly = polygons[pIdx];
 
-        // draw edges and their helpers
-        for (const auto& edge : poly->getEdges()) {
-            edge->drawHelpers(window);
+        // draw edges with highlighting for selected edges
+        const auto& edges = poly->getEdges();
+        for (size_t eIdx = 0; eIdx < edges.size(); ++eIdx) {
+            const auto& edge = edges[eIdx];
+
+            bool isPrimary = (primarySelectedEdge.isValid() && 
+                              primarySelectedEdge.polygonIdx == static_cast<int>(pIdx) && 
+                              primarySelectedEdge.edgeIdx == static_cast<int>(eIdx));
+                              
+            bool isSecondary = (secondarySelectedEdge.isValid() && 
+                                secondarySelectedEdge.polygonIdx == static_cast<int>(pIdx) && 
+                                secondarySelectedEdge.edgeIdx == static_cast<int>(eIdx));
+
+            sf::Color edgeColor = sf::Color::White; 
+            if (isPrimary) {
+                edgeColor = sf::Color::Yellow;  
+            } else if (isSecondary) {
+                edgeColor = sf::Color::Magenta; 
+            }
+
             if (currentDrawer) {
+                currentDrawer->setColor(edgeColor); 
                 edge->draw(*currentDrawer);
             }
+            
+            edge->drawHelpers(window);
         }
 
-        // draw vertices
+        // draw vertices with highlighting for selected vertices
         const auto& vertices = poly->getVertices();
         for (size_t vIdx = 0; vIdx < vertices.size(); ++vIdx) {
             bool isSelected = (static_cast<int>(pIdx) == selectedPolygonIdx &&

@@ -3,7 +3,7 @@
 void LibraryDrawer::drawLine(float x1, float y1, float x2, float y2) const
 {
     sf::Vertex line[] = {
-        sf::Vertex(sf::Vector2f(x1, y1)),
-        sf::Vertex(sf::Vector2f(x2, y2))};
+        sf::Vertex(sf::Vector2f(x1, y1), currentColor),
+        sf::Vertex(sf::Vector2f(x2, y2), currentColor)};
     window.draw(line, 2, sf::Lines);
 }
