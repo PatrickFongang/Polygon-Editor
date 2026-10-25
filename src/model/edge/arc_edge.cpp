@@ -35,3 +35,47 @@ void ArcEdge::draw(const Drawer& drawer) const {
         prevPos = currentPos;
     }
 }
+
+float ArcEdge::distanceToPoint(const sf::Vector2f& pt) const {
+    const int N = 100; 
+    const float dt = 1.0f / N;
+    sf::Vector2f P0 = v1->getPosition();
+    sf::Vector2f P1 = v2->getPosition();
+
+    sf::Vector2f center = (P0 + P1) * 0.5f;
+    sf::Vector2f radiusVec = P0 - center;
+    
+    float radius = std::hypot(radiusVec.x, radiusVec.y);
+    if (radius == 0.0f) {
+        return std::hypot(pt.x - P0.x, pt.y - P0.y);
+    }
+
+    float startAngle = std::atan2(radiusVec.y, radiusVec.x);
+    float endAngle = startAngle + M_PI;
+
+    float minDist = 1e9f;
+    sf::Vector2f prev = P0;
+    
+    for (int i = 1; i <= N; ++i) {
+        float t = i * dt; 
+        float angle = startAngle + t * (endAngle - startAngle);
+        
+        sf::Vector2f curr(
+            center.x + radius * std::cos(angle),
+            center.y + radius * std::sin(angle)
+        );
+
+        sf::Vector2f ab = curr - prev;
+        sf::Vector2f ap = pt - prev;
+        float lenSq = ab.x * ab.x + ab.y * ab.y;
+        float segT = (lenSq > 0.0f) ? std::clamp((ap.x * ab.x + ap.y * ab.y) / lenSq, 0.0f, 1.0f) : 0.0f;
+        sf::Vector2f proj = prev + segT * ab;
+        float d = std::hypot(pt.x - proj.x, pt.y - proj.y);
+        
+        if (d < minDist) minDist = d;
+
+        prev = curr;
+    }
+    
+    return minDist;
+}
