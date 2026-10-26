@@ -30,7 +30,7 @@ int main() {
     scene.initPredefinedScene();
 
     // edits go through the editor, which restores the continuity and the constraints after every change
-    PolygonEditor editor;
+    PolygonEditor editor(scene.getConstraints());
     editor.addRule(std::make_unique<ContinuityEnforcer>());
     editor.addRule(std::make_unique<ConstraintSolver>(scene.getConstraints()));
     for (auto& polygon : scene.getPolygons()) {

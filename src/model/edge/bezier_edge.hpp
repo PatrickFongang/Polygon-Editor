@@ -26,6 +26,7 @@ public:
     // moves the control point next to the end, no vertex has to move
     std::vector<Vertex*> adaptTangent(EdgeEnd end, const sf::Vector2f& desired) override;
     int adaptCost() const override { return 1; }
+    EdgeType type() const override { return EdgeType::Bezier; }
     bool isCurved() const override { return true; }
 
     float distanceToPoint(const sf::Vector2f& pt) const override;

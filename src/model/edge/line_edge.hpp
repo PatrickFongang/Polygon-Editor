@@ -12,5 +12,6 @@ public:
     // rotates (and scales) the line around the vertex at `end` by moving the opposite vertex
     std::vector<Vertex*> adaptTangent(EdgeEnd end, const sf::Vector2f& desired) override;
     int adaptCost() const override { return 2; }
+    EdgeType type() const override { return EdgeType::Line; }
     bool isCurved() const override { return false; }
 };

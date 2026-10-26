@@ -8,6 +8,7 @@
 #include <SFML/System/Vector2.hpp>
 #include "../../enum/continuity.hpp"
 #include "../../enum/edge_end.hpp"
+#include "../../enum/edge_type.hpp"
 #include "../../utils/drawer.hpp"
 #include "../vertex.hpp"
 
@@ -65,6 +66,8 @@ public:
 
     // forgets a tangent imposed at the given end (an arc is anchored by the tangent, see ArcEdge)
     virtual void releaseTangent(EdgeEnd end) {}
+
+    virtual EdgeType type() const = 0;
 
     // is the edge a curve? Continuity at a vertex only matters if at least one adjacent edge is curved
     virtual bool isCurved() const = 0;

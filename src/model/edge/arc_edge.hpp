@@ -21,6 +21,7 @@ public:
     std::vector<Vertex*> adaptTangent(EdgeEnd end, const sf::Vector2f& desired) override;
     void releaseTangent(EdgeEnd end) override;
     bool supports(Continuity continuity) const override { return continuity != Continuity::C1; }
+    EdgeType type() const override { return EdgeType::Arc; }
     bool isCurved() const override { return true; }
     bool derivesTangent() const override { return true; }
     int adaptCost() const override { return 0; }

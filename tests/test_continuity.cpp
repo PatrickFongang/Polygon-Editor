@@ -11,6 +11,7 @@
 #include "editing/polygon_editor.hpp"
 #include "editing/continuity_enforcer.hpp"
 #include "model/continuity_policy.hpp"
+#include "model/constraint/constraint_system.hpp"
 #include <algorithm>
 
 static void testG0() {
@@ -174,7 +175,8 @@ static bool satisfiedAt(const Vertex& v, float eps = 1e-3f) {
 }
 
 static PolygonEditor makeEditor() {
-    PolygonEditor editor;
+    static ConstraintSystem noConstraints;
+    PolygonEditor editor(noConstraints);
     editor.addRule(std::make_unique<ContinuityEnforcer>());
     return editor;
 }

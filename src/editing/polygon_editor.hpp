@@ -8,12 +8,20 @@
 
 class Polygon;
 class Vertex;
+class Edge;
+class Constraint;
+class ConstraintSystem;
+class LengthConstraint;
+class ParallelConstraint;
 struct ControlHandle;
 
 // Entry point for edits of polygons. Applies an edit to the model and then lets the registered rules
-// (continuity, later geometric constraints) restore their invariants.
+// (continuity, geometric constraints) restore their invariants. It also keeps the constraints consistent with the
+// topology: a constraint disappears together with an edge that is split, removed or turned into a curve.
 class PolygonEditor {
 public:
+    explicit PolygonEditor(ConstraintSystem& constraintSystem) : constraints(constraintSystem) {}
+
     void addRule(std::unique_ptr<PostEditRule> rule);
 
     // the vertex follows the position, its control points move with it
@@ -38,11 +46,28 @@ public:
     // adjacent arcs are released and anchored again by the rules if the new class needs it.
     bool setContinuity(Vertex& vertex, Continuity continuity);
 
+    // Gives the segment the length (a second request for the same edge changes the value of the first one).
+    // Only segments can be constrained; returns nullptr if the request is refused.
+    LengthConstraint* setEdgeLength(Edge& edge, float length);
+
+    // Makes two different segments parallel; returns nullptr if the request is refused
+    // (a curve, the same edge twice, or the edges are already constrained that way).
+    ParallelConstraint* addParallelConstraint(Edge& first, Edge& second);
+
+    bool removeConstraint(const Constraint* constraint);
+
     // checks the rules at all vertices, e.g. after a polygon has been built
     void enforceAll(Polygon& polygon);
 
 private:
+    ConstraintSystem& constraints;
     std::vector<std::unique_ptr<PostEditRule>> rules;
+
+    // all the constraints involving any of the edges
+    std::vector<Constraint*> constraintsOf(const std::vector<Edge*>& edges) const;
+    void removeConstraints(const std::vector<Constraint*>& doomed);
+    // runs the rules around the ends of the edges (after a constraint was added)
+    void notifyAround(const std::vector<Edge*>& edges);
 
     // Lets the rules restore their invariants. A rule can break what another one has fixed (a constraint turns a
     // segment, so the continuity at its ends has to follow, and the other way round), therefore the rules are

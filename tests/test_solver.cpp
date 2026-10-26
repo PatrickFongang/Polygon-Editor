@@ -14,7 +14,7 @@
 #include "editing/constraint_solver.hpp"
 
 static PolygonEditor makeEditor(ConstraintSystem& system) {
-    PolygonEditor editor;
+    PolygonEditor editor(system);
     editor.addRule(std::make_unique<ContinuityEnforcer>());
     editor.addRule(std::make_unique<ConstraintSolver>(system));
     return editor;
