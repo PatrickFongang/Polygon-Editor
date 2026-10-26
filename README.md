@@ -1,99 +1,114 @@
-# 2D Polygon & Curvilinear Polygon Editor
+# Edytor wielokątów i wielokątów krzywoliniowych
 
-An interactive 2D geometry editor built in C++ using **SFML 3.0** and **Dear ImGui**. The application allows users to manipulate polygons, convert edges into cubic Bézier curves or circular arcs, and enforce geometric constraints and continuity classes ($G^0$, $G^1$, $C^1$) in real time.
-
----
-
-## Features
-
-* **Polygon Manipulation:**
-  * Support for multiple polygons (including self-intersecting polygons) loaded from a predefined demonstration scene.
-  * Interactive dragging of individual vertices, Bézier control points, or entire polygons using the mouse.
-  * Dynamic topology editing: adding new vertices at the midpoint of an edge and deleting existing vertices.
-* **Geometric Constraints (Relations):**
-  * **Fixed Edge Length:** Lock an edge to a user-defined length.
-  * **Parallelism / Perpendicularity:** Enforce relational constraints between pairs of edges (within the same polygon or across different polygons).
-  * Visual constraint indicators rendered near edge midpoints.
-* **Cubic Bézier Curves & Circular Arcs:**
-  * Seamless toggling of any edge between a straight line segment, a cubic Bézier curve, and a circular arc.
-  * Interactive control polygon rendering (dashed lines) and draggable control points.
-  * Enforceable vertex continuity classes: **$G^0$** (positional), **$G^1$** (unit tangent vector direction), and **$C^1$** (tangent vector continuity).
-* **Custom Rendering Algorithms:**
-  * Switchable line-drawing backend: standard library rendering vs. a custom **Bresenham's line algorithm** implementation.
-  * Fast incremental forward-differencing algorithm (power basis) for rendering cubic Bézier segments.
+Interaktywny edytor 2D napisany w C++20 z użyciem **SFML 2.6** i **Dear ImGui**. Pozwala edytować wielokąty (także z samoprzecięciami), zamieniać krawędzie na segmenty Béziera 3. stopnia i łuki okręgów, wymuszać ciągłość w wierzchołkach (G0, G1, C1) oraz zadawać ograniczenia geometryczne (długość, równoległość) w czasie rzeczywistym. Pełna dokumentacja jest dostępna w programie (**F1**).
 
 ---
 
-## Tech Stack & Requirements
+## Funkcje
 
-* **Language:** C++17
-* **Compiler:** MinGW-w64 (GCC 14.2.0 32-bit DW2)
-* **Libraries:**
-  * [SFML 3.0.0](https://www.sfml-dev.org/) (Graphics, Window, System)
-  * [Dear ImGui](https://github.com/ocornut/imgui) + [ImGui-SFML](https://github.com/SFML/imgui-sfml) (included in the `imgui/` directory)
-* **Build System:** Make (`mingw32-make`)
+* **Wielokąty:** dowolna liczba wielokątów ze sceny początkowej, samoprzecięcia, przesuwanie wierzchołka, punktu kontrolnego i całego wielokąta, usuwanie wierzchołka, dodawanie wierzchołka w środku krawędzi.
+* **Krawędzie:** każdą krawędź można przełączyć między odcinkiem, segmentem Béziera 3. stopnia (z przerywanym wielobokiem kontrolnym i dwoma przesuwalnymi punktami kontrolnymi) a łukiem okręgu.
+* **Ciągłość w wierzchołkach:** G0, G1 i C1 dla Béziera, G0 i G1 dla łuku (tylko jeden koniec łuku może być G1; przy G0 na obu końcach łuk jest półokręgiem). Domyślnie G1. Zmiana jednego elementu wymusza odpowiednie zmiany innych.
+* **Ograniczenia geometryczne:** zadana długość odcinka i równoległość dwóch odcinków (także z różnych wielokątów). Na jednej krawędzi może być kilka ograniczeń; aktywne są oznaczone etykietami na scenie, można je usuwać.
+* **Algorytmy rysowania:** odcinki biblioteczne albo własny algorytm Bresenhama (radio buttony); segmenty Béziera rysowane algorytmem przyrostowym w bazie potęgowej.
+* **Scena początkowa:** dwa wielokąty (z krzywą Béziera i łukiem) oraz cztery ograniczenia.
 
 ---
 
-## Project Structure
+## Sterowanie
+
+| Akcja | Efekt |
+|---|---|
+| LPM na wierzchołku + przeciąganie | przesuwa wierzchołek (podąża za kursorem) |
+| Shift + LPM na wierzchołku + przeciąganie | przesuwa cały wielokąt |
+| LPM na punkcie kontrolnym Béziera + przeciąganie | przesuwa punkt kontrolny |
+| LPM na krawędzi | zaznacza krawędź; przeciąganie przesuwa wielokąt |
+| LPM wewnątrz wielokąta + przeciąganie | przesuwa wielokąt |
+| Ctrl + LPM na krawędzi | wybiera drugą krawędź (np. do równoległości) |
+| PPM na wierzchołku | usuwa wierzchołek (min. 3 w wielokącie) |
+| PPM na krawędzi | dodaje wierzchołek w jej środku |
+| Delete / Backspace | usuwa zaznaczony wierzchołek |
+| F1 | okno dokumentacji |
+
+Panel sterowania: wybór algorytmu rysowania, reset sceny, typ zaznaczonej krawędzi, ograniczenia (długość, równoległość, lista z usuwaniem) i wybór ciągłości zaznaczonego wierzchołka (tylko klasy dozwolone w tym miejscu).
+
+---
+
+## Architektura
 
 ```text
 .
-├── Makefile          # Build configuration for Windows (MinGW)
-├── README.md         # Project documentation
-├── src/              # Application source code and geometry engine
-│   └── main.cpp
-├── imgui/            # Dear ImGui & ImGui-SFML source files
-└── SFML/             # Local SFML 3.0 library files (ignored by Git)
-    ├── include/
-    ├── lib/
-    └── bin/
+├── makefile
+├── README.md
+├── imgui/                    # Dear ImGui + ImGui-SFML
+├── tests/                    # testy jednostkowe (bez okna), make test
+└── src/
+    ├── main.cpp              # składanie: scena, edytor z regułami, UI
+    ├── enum/                 # Continuity, EdgeEnd, EdgeType
+    ├── model/
+    │   ├── vertex.*, polygon.*
+    │   ├── edge/             # Edge (interfejs stycznych), LineEdge, BezierEdge, ArcEdge, fabryka
+    │   ├── continuity_strategy.hpp   # G0/G1/C1: matematyka na wektorach stycznych
+    │   ├── continuity_policy.*       # co jest dozwolone w wierzchołku, wartości domyślne
+    │   └── constraint/       # Constraint, LengthConstraint, ParallelConstraint, ConstraintSystem
+    ├── editing/              # PolygonEditor, PostEditRule, ContinuityEnforcer, ConstraintSolver
+    ├── scene/                # Scene: wielokąty, ograniczenia, scena początkowa
+    ├── builder/              # PolygonBuilder, PolygonDirector
+    ├── ui/                   # InputHandler, UIManager, okno dokumentacji
+    └── utils/                # Drawer (biblioteczny, Bresenham), narzędzia wektorowe
+```
 
+Najważniejsze decyzje projektowe:
+
+* **Styczna jako wspólna abstrakcja.** Każda krawędź umie podać (`tangentAt`) i zmienić (`adaptTangent`) swoją styczną w danym końcu. Dzięki temu strategie ciągłości nie znają typów krawędzi, a nowy typ krawędzi nie wymaga zmian w algorytmie ciągłości.
+* **Strategie ciągłości** (`ContinuityStrategy`) opisują relację dwóch stycznych: G0 - brak warunku, G1 - ten sam kierunek, C1 - równe wektory.
+* **`ContinuityEnforcer`** po edycji sprawdza wierzchołki w kolejce roboczej. Złamaną relację naprawia jedna z krawędzi (follower): przeciągana przez użytkownika jest zawsze driverem, w pozostałych przypadkach ustępuje ta o mniejszym `adaptCost` (łuk, Bezier, odcinek). Bezier przesuwa punkt kontrolny, łuk zapamiętuje kotwicę stycznej, a odcinek obraca się wokół wierzchołka.
+* **Ograniczenia** to osobne obiekty (`Constraint`) trzymane w `ConstraintSystem` w scenie. `ConstraintSolver` rzutuje je po kolei (Gauss-Seidel), nie ruszając wierzchołków przypiętych przez użytkownika.
+* **`PolygonEditor`** jest jedynym wejściem do edycji i stosuje reguły (`PostEditRule`) w pętli do punktu stałego, bo ciągłość i ograniczenia mogą się wzajemnie psuć. Dokłada też sprzątanie: zmiana typu, podział lub usunięcie wierzchołka usuwa związane z krawędzią ograniczenia i porządkuje ciągłość.
+* **Rozszerzalność:** nowy rodzaj ograniczenia, krawędzi, klasy ciągłości lub reguły po edycji to nowa klasa bez zmian w istniejącym kodzie (patrz zakładka „Rozszerzanie" w oknie F1).
+
+### Scena początkowa
+
+Scenę buduje `Scene::initPredefinedScene()` ([src/scene/scene.cpp](src/scene/scene.cpp)). Dodanie wielokąta lub ograniczenia to jedna linia:
+
+```cpp
+Polygon& triangle = addPolygon(PolygonDirector::createDemoPolygon1());
+constraints.add(std::make_unique<LengthConstraint>(triangle.getEdge(1), 150.0f));
+constraints.add(std::make_unique<ParallelConstraint>(triangle.getEdge(1), diamond.getEdge(3)));
 ```
 
 ---
 
-## How to Build and Run (Windows)
+## Przyjęte założenia
 
-### 1. Prerequisites
+* Ograniczenia dotyczą tylko odcinków; zmiana krawędzi na krzywą, jej podział lub usunięcie któregoś z jej wierzchołków usuwa jej ograniczenia.
+* Zaimplementowane są: zadana długość i równoległość (nazwiska A-K). Prostopadłość (L-Z) nie jest zaimplementowana.
+* Domyślna ciągłość to G1 (`ContinuityPolicy::DEFAULT`); wybór użytkownika nie jest nadpisywany wartością domyślną.
+* Ciągłość ma sens tylko przy wierzchołku sąsiadującym z krzywą.
+* Przesuwany wierzchołek zawsze podąża za kursorem; przy sprzecznych ograniczeniach zostaje błąd resztkowy (limit iteracji).
+* Podział krawędzi daje dwa odcinki.
 
-Ensure you have **MinGW (GCC 14.2.0 32-bit)** installed and added to your system `PATH` (e.g., `C:\mingw32\bin`).
+---
 
-### 2. Setup SFML
+## Budowanie i uruchamianie (Linux)
 
-Since binary libraries are excluded from the repository, download **SFML 3.0.0 for GCC 14.2.0 MinGW (DW2) 32-bit**:
+Wymagane: `g++` (C++20), SFML 2.6 (moduły graphics, window, system) i OpenGL. Na Ubuntu:
 
-1. Extract the `include`, `lib`, and `bin` folders into the `./SFML/` directory in the project root.
-2. Copy all `.dll` files from `./SFML/bin/` directly into the project root directory (next to the `Makefile`):
-```powershell
-Copy-Item SFML/bin/*.dll .
-
+```bash
+sudo apt install build-essential libsfml-dev libgl-dev
 ```
 
+Kompilacja i uruchomienie (makefile używa AddressSanitizera i śledzi zależności od nagłówków):
 
-
-### 3. Compile the Project
-
-Open PowerShell or Command Prompt in the project root directory and run:
-
-```powershell
-mingw32-make
-
+```bash
+make
+./app
 ```
 
-To recompile from scratch (clean build):
+Testy jednostkowe (bez okna):
 
-```powershell
-mingw32-make clean
-mingw32-make
-
+```bash
+make test
 ```
 
-### 4. Run the Application
-
-Once compiled, launch the executable:
-
-```powershell
-.\app.exe
-
-```
+Czyszczenie: `make clean`.

@@ -1,5 +1,6 @@
 #include "ui_manager.hpp"
 #include "imgui.h"
+#include "documentation.hpp"
 #include "../model/continuity_policy.hpp"
 #include "../model/constraint/constraint_system.hpp"
 #include "../model/constraint/length_constraint.hpp"
@@ -317,19 +318,5 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
     }
     ImGui::End();
 
-    if (showDocs)
-    {
-        ImGui::SetNextWindowSize(ImVec2(550.0f, 450.0f), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Dokumentacja projektu", &showDocs);
-
-        if (ImGui::CollapsingHeader("1. Instrukcja obslugi", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            ImGui::BulletText("LPM (przeciaganie): Przesuwanie wierzcholka.");
-            ImGui::BulletText("Wybrany wierzcholek: w panelu mozna wybrac ciaglosc G0 / G1 / C1 (tylko dozwolone).");
-            ImGui::BulletText("Ctrl+LPM: wybor drugiej krawedzi; w panelu mozna zadac dlugosc odcinka lub rownoleglosc dwoch odcinkow.");
-            ImGui::BulletText("Przy wierzcholkach sasiadujacych z krzywa wyswietlana jest ich aktualna klasa ciaglosci.");
-            ImGui::BulletText("F1: Wlaczenie / wylaczenie okna dokumentacji.");
-        }
-        ImGui::End();
-    }
+    drawDocumentation(showDocs);
 }
