@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++20 -Wall -g -fsanitize=address -I./imgui -I./src
+CXXFLAGS = -std=c++20 -Wall -g -fsanitize=address -MMD -MP -I./imgui -I./src
 LDFLAGS = -fsanitize=address -lsfml-graphics -lsfml-window -lsfml-system -lGL
 
 # 1. Automatyczne wyszukiwanie wszystkich plików .cpp w podfolderach
@@ -18,7 +18,7 @@ app: $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Testy matematyki ciągłości (bez okna i bez ImGui)
-TEST_SRC = tests/test_continuity.cpp src/model/vertex.cpp src/model/edge/edge.cpp src/model/edge/line_edge.cpp src/model/edge/bezier_edge.cpp src/model/edge/arc_edge.cpp src/model/polygon.cpp src/builder/polygon_builder.cpp src/editing/polygon_editor.cpp src/editing/continuity_enforcer.cpp
+TEST_SRC = tests/test_continuity.cpp src/model/vertex.cpp src/model/edge/edge.cpp src/model/edge/line_edge.cpp src/model/edge/bezier_edge.cpp src/model/edge/arc_edge.cpp src/model/polygon.cpp src/builder/polygon_builder.cpp src/editing/polygon_editor.cpp src/editing/continuity_enforcer.cpp src/model/continuity_policy.cpp src/model/edge/edge_factory.cpp
 
 test: $(TEST_SRC)
 	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o tests/run_tests $(LDFLAGS)
@@ -26,4 +26,7 @@ test: $(TEST_SRC)
 
 # Reguła czyszcząca
 clean:
-	rm -f $(OBJS) app
+	rm -f $(OBJS) $(OBJS:.o=.d) app
+
+# zaleznosci od naglowkow (generowane przez -MMD), zeby zmiana .hpp przebudowywala zalezne pliki
+-include $(OBJS:.o=.d)
