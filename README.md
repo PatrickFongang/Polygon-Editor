@@ -1,6 +1,6 @@
 # Polygon and Curvilinear Polygon Editor
 
-An interactive 2D editor written in C++20 with **SFML 2.6** and **Dear ImGui**. It lets you edit polygons (self-intersections included), turn edges into cubic Bézier segments or circular arcs, keep vertex continuity (G0, G1, C1) and impose geometric constraints (length, parallelism) in real time. The full documentation is available in the program itself (**F1**, in Polish).
+An interactive 2D editor written in C++20 with **SFML 2.6** and **Dear ImGui**. It lets you edit polygons (self-intersections included), turn edges into cubic Bézier segments or circular arcs, keep vertex continuity (G0, G1, C1) and impose geometric constraints (length, parallelism) in real time. The full documentation is available in the program itself (**F1**, in Polish). The mathematics behind the algorithms (Bézier curves, arcs, continuity, constraints, Bresenham) is derived in [mathdocs](mathdocs/README.md).
 
 ---
 
@@ -297,6 +297,20 @@ Polygon& triangle = addPolygon(PolygonDirector::createDemoPolygon1());
 constraints.add(std::make_unique<LengthConstraint>(triangle.getEdge(1), 150.0f));
 constraints.add(std::make_unique<ParallelConstraint>(triangle.getEdge(1), diamond.getEdge(3)));
 ```
+
+---
+
+## Mathematical documentation
+
+The [mathdocs](mathdocs/README.md) folder describes the mathematics behind the project, with the formulas matching the code:
+
+* [conventions](mathdocs/01-conventions.md) - vectors, cross product, rotations, tangents of the edges,
+* [cubic Bézier segments](mathdocs/02-bezier.md) - power basis and the incremental algorithm (forward differences),
+* [circular arcs](mathdocs/03-arc.md) - the arc through two points with a given tangent,
+* [continuity](mathdocs/04-continuity.md) - G0 / G1 / C1, repairing a vertex, propagation, the continuity policy,
+* [constraints](mathdocs/05-constraints.md) - length and parallelism as projections, Gauss-Seidel, cooperation with continuity,
+* [drawing and hit testing](mathdocs/06-drawing-and-hit-testing.md) - Bresenham, distances, point in polygon,
+* [numerical parameters](mathdocs/07-numerical-parameters.md).
 
 ---
 
