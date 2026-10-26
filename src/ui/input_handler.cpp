@@ -226,7 +226,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
             if (scene.selectedPolygonIdx < static_cast<int>(polygons.size()))
             {
                 // vertex follows the mouse cursor directly
-                polygons[scene.selectedPolygonIdx]->moveVertex(scene.selectedVertexIdx, mousePos);
+                editor.moveVertex(*polygons[scene.selectedPolygonIdx], scene.selectedVertexIdx, mousePos);
             }
         }
         else if (isDraggingControlPoint && draggedControlPoint != nullptr)

@@ -2,6 +2,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <memory>
+#include <vector>
 #include "../enum/continuity.hpp"
 #include "continuity_strategy.hpp"
 
@@ -26,6 +27,9 @@ public:
 
     // moves the vertex and lets the adjacent edges react (e.g. Bezier control points follow the endpoint)
     void moveWithEdges(const sf::Vector2f &pos);
+
+    // the vertices at the other ends of the adjacent edges
+    std::vector<Vertex *> adjacentVertices() const;
 
     sf::Color getColor() const { return color; }
     void setColor(const sf::Color &col) { color = col; }

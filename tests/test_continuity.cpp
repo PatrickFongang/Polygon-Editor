@@ -7,6 +7,10 @@
 #include "model/edge/line_edge.hpp"
 #include "model/edge/bezier_edge.hpp"
 #include "model/edge/arc_edge.hpp"
+#include "model/polygon.hpp"
+#include "builder/polygon_builder.hpp"
+#include "editing/polygon_editor.hpp"
+#include "editing/continuity_enforcer.hpp"
 
 static int failures = 0;
 
@@ -19,6 +23,7 @@ static int failures = 0;
     } while (0)
 
 static bool near(sf::Vector2f a, sf::Vector2f b, float eps = 1e-3f) { return vec::length(a - b) <= eps; }
+static bool near(float a, float b, float eps = 1e-3f) { return std::abs(a - b) <= eps; }
 
 using V = sf::Vector2f;
 
@@ -163,6 +168,125 @@ static void testVertexMoveWithEdges() {
     CHECK(near(bez.getControlPoint1()->getPosition(), cp1Before));
 }
 
+
+// A - B (Bezier) - C (line) - D (Bezier) - A (line), G1 at B and C
+static std::unique_ptr<Polygon> makeChain(Continuity atB, Continuity atC) {
+    return PolygonBuilder()
+        .addVertex(0, 0, Continuity::G0)
+        .addVertex(100, 0, atB)
+        .withLastEdgeAsBezier()
+        .addVertex(100, 100, atC)
+        .addVertex(0, 100, Continuity::G0)
+        .withLastEdgeAsBezier()
+        .closePolygon()
+        .build();
+}
+
+static bool satisfiedAt(const Vertex& v, float eps = 1e-3f) {
+    return v.getContinuityStrategy().isSatisfied(
+        v.getPrevEdge()->tangentAt(EdgeEnd::End), v.getNextEdge()->tangentAt(EdgeEnd::Start), eps);
+}
+
+static PolygonEditor makeEditor() {
+    PolygonEditor editor;
+    editor.addRule(std::make_unique<ContinuityEnforcer>());
+    return editor;
+}
+
+static void testEnforceAll() {
+    auto poly = makeChain(Continuity::G1, Continuity::G1);
+    auto* bezier = static_cast<BezierEdge*>(poly->getEdge(0));
+    CHECK(!satisfiedAt(*poly->getVertex(1))); // default control points are not tangent to the line
+
+    V lineBefore = poly->getEdge(1)->tangentAt(EdgeEnd::Start);
+    makeEditor().enforceAll(*poly);
+
+    CHECK(satisfiedAt(*poly->getVertex(1)));
+    CHECK(satisfiedAt(*poly->getVertex(2)));
+    // the Bezier adapted, the line stayed where it was
+    CHECK(near(poly->getEdge(1)->tangentAt(EdgeEnd::Start), lineBefore));
+    CHECK(near(bezier->getControlPoint2()->getPosition().x, 100.0f)); // on the vertical line through B
+}
+
+static void testMoveVertexKeepsContinuity() {
+    for (Continuity c : {Continuity::G1, Continuity::C1}) {
+        auto poly = makeChain(c, c);
+        PolygonEditor editor = makeEditor();
+        editor.enforceAll(*poly);
+
+        editor.moveVertex(*poly, 1, {130, 20});
+        CHECK(near(poly->getVertex(1)->getPosition(), V(130, 20)));
+        CHECK(satisfiedAt(*poly->getVertex(1)));
+        CHECK(satisfiedAt(*poly->getVertex(2)));
+
+        // moving the far end of the line changes its direction, the Bezier at the other end follows
+        editor.moveVertex(*poly, 2, {60, 160});
+        CHECK(near(poly->getVertex(2)->getPosition(), V(60, 160)));
+        CHECK(satisfiedAt(*poly->getVertex(1)));
+        CHECK(satisfiedAt(*poly->getVertex(2)));
+    }
+}
+
+static void testDriverControlPoint() {
+    auto poly = makeChain(Continuity::G1, Continuity::G1);
+    ContinuityEnforcer enforcer;
+    PolygonEditor editor = makeEditor();
+    editor.enforceAll(*poly);
+
+    Vertex* b = poly->getVertex(1);
+    Vertex* c = poly->getVertex(2);
+    auto* bezier = static_cast<BezierEdge*>(poly->getEdge(0));
+    float lineLength = poly->getEdge(1)->getLength();
+
+    // user drags the control point of A-B next to B, the line B-C has to turn around B
+    bezier->getControlPoint2()->setPosition({80, 30});
+    EditEvent event;
+    event.seeds = {b};
+    event.driver = bezier;
+    enforcer.apply(event);
+
+    CHECK(near(bezier->getControlPoint2()->getPosition(), V(80, 30))); // the dragged point is untouched
+    CHECK(near(b->getPosition(), V(100, 0)));
+    CHECK(near(poly->getEdge(1)->getLength(), lineLength));
+    CHECK(satisfiedAt(*b));
+    CHECK(!near(c->getPosition(), V(100, 100)));       // C had to move
+    CHECK(satisfiedAt(*c));                              // and the Bezier C-D followed the line
+    CHECK(near(poly->getVertex(0)->getPosition(), V(0, 0)));
+    CHECK(near(poly->getVertex(3)->getPosition(), V(0, 100)));
+}
+
+static void testDriverBezierBezierC1() {
+    auto poly = PolygonBuilder()
+        .addVertex(0, 0, Continuity::G0)
+        .addVertex(100, 0, Continuity::C1)
+        .withLastEdgeAsBezier()
+        .addVertex(200, 0, Continuity::G0)
+        .withLastEdgeAsBezier()
+        .addVertex(100, 100, Continuity::G0)
+        .closePolygon()
+        .build();
+    PolygonEditor editor = makeEditor();
+    editor.enforceAll(*poly);
+
+    auto* first = static_cast<BezierEdge*>(poly->getEdge(0));
+    auto* second = static_cast<BezierEdge*>(poly->getEdge(1));
+    first->getControlPoint2()->setPosition({90, -25});
+    EditEvent event;
+    event.seeds = {poly->getVertex(1)};
+    event.driver = first;
+    ContinuityEnforcer().apply(event);
+
+    CHECK(near(second->getControlPoint1()->getPosition(), V(110, 25))); // reflection of the dragged point
+    CHECK(near(first->tangentAt(EdgeEnd::End), second->tangentAt(EdgeEnd::Start)));
+}
+
+static void testG0IsLeftAlone() {
+    auto poly = makeChain(Continuity::G0, Continuity::G0);
+    V cpBefore = static_cast<BezierEdge*>(poly->getEdge(0))->getControlPoint2()->getPosition();
+    makeEditor().enforceAll(*poly);
+    CHECK(near(static_cast<BezierEdge*>(poly->getEdge(0))->getControlPoint2()->getPosition(), cpBefore));
+}
+
 int main() {
     testG0();
     testG1();
@@ -172,6 +296,11 @@ int main() {
     testArcTangent();
     testStrategyWithEdges();
     testVertexMoveWithEdges();
+    testEnforceAll();
+    testMoveVertexKeepsContinuity();
+    testDriverControlPoint();
+    testDriverBezierBezierC1();
+    testG0IsLeftAlone();
 
     if (failures == 0)
         std::printf("all continuity tests passed\n");

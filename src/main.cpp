@@ -8,6 +8,8 @@
 #include "scene/scene.hpp"
 #include "ui/ui_manager.hpp"
 #include "ui/input_handler.hpp"
+#include "editing/polygon_editor.hpp"
+#include "editing/continuity_enforcer.hpp"
 
 int main() {
     // initialize SFML window
@@ -26,8 +28,15 @@ int main() {
     Scene scene(std::move(initialDrawer));
     scene.initPredefinedScene();
 
+    // edits go through the editor, which restores the continuity at the vertices after every change
+    PolygonEditor editor;
+    editor.addRule(std::make_unique<ContinuityEnforcer>());
+    for (auto& polygon : scene.getPolygons()) {
+        editor.enforceAll(*polygon);
+    }
+
     UIManager uiManager;
-    InputHandler inputHandler;
+    InputHandler inputHandler(editor);
     
     bool showDocs = false; 
 
