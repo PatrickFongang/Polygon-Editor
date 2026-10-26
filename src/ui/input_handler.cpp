@@ -20,6 +20,31 @@ static bool isPointInPolygon(const sf::Vector2f &pt, const std::vector<std::uniq
     return inside;
 }
 
+// the nearest edge within the hit radius; returns false if there is none
+static bool findEdgeAt(Scene &scene, const sf::Vector2f &pos, float radius, int &polygonIdx, int &edgeIdx)
+{
+    auto &polygons = scene.getPolygons();
+    float bestDist = radius;
+    bool found = false;
+
+    for (size_t pIdx = 0; pIdx < polygons.size(); ++pIdx)
+    {
+        const auto &edges = polygons[pIdx]->getEdges();
+        for (size_t eIdx = 0; eIdx < edges.size(); ++eIdx)
+        {
+            float d = edges[eIdx]->distanceToPoint(pos);
+            if (d <= bestDist)
+            {
+                bestDist = d;
+                polygonIdx = static_cast<int>(pIdx);
+                edgeIdx = static_cast<int>(eIdx);
+                found = true;
+            }
+        }
+    }
+    return found;
+}
+
 float InputHandler::distance(const sf::Vector2f &a, const sf::Vector2f &b)
 {
     return std::hypot(a.x - b.x, a.y - b.y);
@@ -45,7 +70,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
                 {
                     editor.removeVertex(*polygons[scene.selectedPolygonIdx], scene.selectedVertexIdx);
                     scene.selectedVertexIdx = -1;
-                    scene.primarySelectedEdge.invalidate();
+                    scene.clearEdgeSelection();
                 }
             }
         }
@@ -64,6 +89,19 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
 
         auto &polygons = scene.getPolygons();
         bool shiftHeld = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
+
+        bool ctrlHeld = sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) || sf::Keyboard::isKeyPressed(sf::Keyboard::RControl);
+        if (ctrlHeld)
+        {
+            // Ctrl + click picks the second edge for a relation between two edges (it can be in another polygon)
+            int polyIdx = -1;
+            int edgeIdx = -1;
+            if (findEdgeAt(scene, mousePos, HIT_RADIUS, polyIdx, edgeIdx))
+                scene.secondarySelectedEdge = {polyIdx, edgeIdx};
+            else
+                scene.secondarySelectedEdge.invalidate();
+            return;
+        }
 
         // vertex detection
         float bestDist = HIT_RADIUS;
@@ -89,7 +127,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
         {
             scene.selectedPolygonIdx = hitPolyIdx;
             scene.selectedVertexIdx = hitVertIdx;
-            scene.primarySelectedEdge.invalidate();
+            scene.clearEdgeSelection();
 
             if (shiftHeld)
             {
@@ -120,26 +158,10 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
         }
 
         // edge detection - only if no vertex or control point was hit
-        bestDist = HIT_RADIUS;
         int hitEdgeIdx = -1;
         hitPolyIdx = -1;
 
-        for (size_t pIdx = 0; pIdx < polygons.size(); ++pIdx)
-        {
-            const auto &edges = polygons[pIdx]->getEdges();
-            for (size_t eIdx = 0; eIdx < edges.size(); ++eIdx)
-            {
-                float d = edges[eIdx]->distanceToPoint(mousePos);
-                if (d <= bestDist)
-                {
-                    bestDist = d;
-                    hitPolyIdx = static_cast<int>(pIdx);
-                    hitEdgeIdx = static_cast<int>(eIdx);
-                }
-            }
-        }
-
-        if (hitPolyIdx != -1 && hitEdgeIdx != -1)
+        if (findEdgeAt(scene, mousePos, HIT_RADIUS, hitPolyIdx, hitEdgeIdx))
         {
             scene.selectedPolygonIdx = hitPolyIdx;
             scene.selectedVertexIdx = -1;
@@ -156,7 +178,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
             {
                 scene.selectedPolygonIdx = static_cast<int>(pIdx);
                 scene.selectedVertexIdx = -1;
-                scene.primarySelectedEdge.invalidate();
+                scene.clearEdgeSelection();
                 isDraggingPolygon = true;
                 return;
             }
@@ -165,7 +187,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
         // clicked on empty space - deselect everything
         scene.selectedPolygonIdx = -1;
         scene.selectedVertexIdx = -1;
-        scene.primarySelectedEdge.invalidate();
+        scene.clearEdgeSelection();
     }
 
     // right mouse button clicked - add or remove vertex
@@ -183,7 +205,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
                 {
                     editor.removeVertex(*polygons[pIdx], vIdx);
                     scene.selectedVertexIdx = -1;
-                    scene.primarySelectedEdge.invalidate();
+                    scene.clearEdgeSelection();
                     return;
                 }
             }
@@ -199,7 +221,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
                 {
                     editor.splitEdgeAtMidpoint(*polygons[pIdx], eIdx);
                     scene.selectedVertexIdx = -1;
-                    scene.primarySelectedEdge.invalidate();
+                    scene.clearEdgeSelection();
                     return;
                 }
             }

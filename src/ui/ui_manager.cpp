@@ -1,6 +1,10 @@
 #include "ui_manager.hpp"
 #include "imgui.h"
 #include "../model/continuity_policy.hpp"
+#include "../model/constraint/constraint_system.hpp"
+#include "../model/constraint/length_constraint.hpp"
+#include <algorithm>
+#include <string>
 
 static const char *continuityName(Continuity continuity)
 {
@@ -39,9 +43,166 @@ void UIManager::drawContinuityLabels(Scene &scene, sf::RenderWindow &window)
     }
 }
 
+// "W#1 K#2": the polygon and the edge, as in the panel
+static std::string edgeName(Scene &scene, const Edge *edge)
+{
+    auto &polygons = scene.getPolygons();
+    for (size_t p = 0; p < polygons.size(); ++p)
+    {
+        const auto &edges = polygons[p]->getEdges();
+        for (size_t e = 0; e < edges.size(); ++e)
+        {
+            if (edges[e].get() == edge)
+                return "W#" + std::to_string(p) + " K#" + std::to_string(e);
+        }
+    }
+    return "?";
+}
+
+void UIManager::drawConstraintLabels(Scene &scene, sf::RenderWindow &window)
+{
+    ImDrawList *drawList = ImGui::GetBackgroundDrawList();
+
+    // how many labels an edge has already got, so that they do not overlap
+    std::vector<std::pair<const Edge *, int>> used;
+    int relationNumber = 0;
+
+    for (const auto &constraint : scene.getConstraints().all())
+    {
+        std::vector<Edge *> edges = constraint->edges();
+        std::string text = constraint->label();
+        if (edges.size() > 1)
+            text += std::to_string(++relationNumber); // the same number marks both edges of a relation
+
+        for (const Edge *edge : edges)
+        {
+            auto it = std::find_if(used.begin(), used.end(), [edge](const auto &u) { return u.first == edge; });
+            if (it == used.end())
+            {
+                used.push_back({edge, 0});
+                it = used.end() - 1;
+            }
+            int slot = it->second++;
+
+            sf::Vector2i pixel = window.mapCoordsToPixel(edge->getMidpoint());
+            ImVec2 size = ImGui::CalcTextSize(text.c_str());
+            ImVec2 pos(pixel.x + 6.0f, pixel.y - 8.0f - slot * (size.y + 4.0f));
+            drawList->AddRectFilled(ImVec2(pos.x - 2.0f, pos.y - 1.0f), ImVec2(pos.x + size.x + 2.0f, pos.y + size.y + 1.0f),
+                                    IM_COL32(20, 40, 70, 220), 3.0f);
+            drawList->AddText(pos, IM_COL32(140, 210, 255, 255), text.c_str());
+        }
+    }
+}
+
+void UIManager::drawConstraintPanel(Scene &scene)
+{
+    auto &polygons = scene.getPolygons();
+    auto edgeAt = [&](const EdgeSelection &selection) -> Edge * {
+        if (!selection.isValid() || selection.polygonIdx >= static_cast<int>(polygons.size()))
+            return nullptr;
+        return polygons[selection.polygonIdx]->getEdge(selection.edgeIdx);
+    };
+
+    Edge *first = edgeAt(scene.primarySelectedEdge);
+    Edge *second = edgeAt(scene.secondarySelectedEdge);
+    if (!first)
+    {
+        lengthInputEdge = nullptr;
+        return;
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Ograniczenia:");
+    ImGui::TextDisabled("Ctrl+LPM: wybor drugiej krawedzi (np. do rownoleglosci)");
+    if (second)
+    {
+        ImGui::Text("Druga krawedz: Wielokat #%d, Krawedz #%d",
+                    scene.secondarySelectedEdge.polygonIdx, scene.secondarySelectedEdge.edgeIdx);
+    }
+
+    if (first->isCurved())
+    {
+        ImGui::TextDisabled("Ograniczenia dotycza tylko odcinkow.");
+    }
+    else
+    {
+        // the field starts with the length now, or with the length that is already imposed
+        if (first != lengthInputEdge)
+        {
+            lengthInputEdge = first;
+            lengthInput = first->getLength();
+            for (Constraint *constraint : scene.getConstraints().constraintsOf(first))
+            {
+                if (auto *length = dynamic_cast<LengthConstraint *>(constraint))
+                    lengthInput = length->getLength();
+            }
+        }
+
+        ImGui::SetNextItemWidth(110.0f);
+        ImGui::InputFloat("Dlugosc", &lengthInput, 1.0f, 10.0f, "%.1f");
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!(lengthInput > 0.0f));
+        if (ImGui::Button("Ustaw dlugosc"))
+        {
+            editor.setEdgeLength(*first, lengthInput);
+        }
+        ImGui::EndDisabled();
+
+        bool canBeParallel = second && second != first && !second->isCurved();
+        ImGui::BeginDisabled(!canBeParallel);
+        if (ImGui::Button("Rownolegle do drugiej krawedzi"))
+        {
+            editor.addParallelConstraint(*first, *second);
+        }
+        ImGui::EndDisabled();
+        if (second && second->isCurved())
+            ImGui::TextDisabled("Druga krawedz nie jest odcinkiem.");
+    }
+
+    // the constraints of both selected edges, each with the button that removes it
+    std::vector<Constraint *> listed = scene.getConstraints().constraintsOf(first);
+    if (second)
+    {
+        for (Constraint *constraint : scene.getConstraints().constraintsOf(second))
+        {
+            if (std::find(listed.begin(), listed.end(), constraint) == listed.end())
+                listed.push_back(constraint);
+        }
+    }
+
+    if (listed.empty())
+    {
+        ImGui::TextDisabled("Brak ograniczen na zaznaczonych krawedziach.");
+        return;
+    }
+
+    ImGui::Text("Aktywne ograniczenia:");
+    for (Constraint *constraint : listed)
+    {
+        std::string description = constraint->label() + "  [";
+        std::vector<Edge *> edges = constraint->edges();
+        for (size_t i = 0; i < edges.size(); ++i)
+            description += (i ? ", " : "") + edgeName(scene, edges[i]);
+        description += "]";
+
+        ImGui::PushID(constraint);
+        ImGui::BulletText("%s", description.c_str());
+        ImGui::SameLine();
+        bool removed = ImGui::SmallButton("Usun");
+        ImGui::PopID();
+
+        if (removed)
+        {
+            editor.removeConstraint(constraint);
+            break; // the list is no longer valid
+        }
+    }
+}
+
 void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
 {
     drawContinuityLabels(scene, window);
+    drawConstraintLabels(scene, window);
 
     ImGui::Begin("Panel Sterowania");
 
@@ -89,7 +250,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
         if (ImGui::Button("Dodaj wierzcholek na srodku"))
         {
             editor.splitEdgeAtMidpoint(*poly, eIdx);
-            scene.primarySelectedEdge.invalidate();
+            scene.clearEdgeSelection();
         }
 
         if (edge)
@@ -115,6 +276,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
     {
         ImGui::TextDisabled("Kliknij LPM na krawedz lub wierzcholek...");
     }
+    drawConstraintPanel(scene);
     if (scene.selectedPolygonIdx != -1 && scene.selectedVertexIdx != -1)
     {
         Polygon *poly = scene.getPolygons()[scene.selectedPolygonIdx].get();
@@ -164,6 +326,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
         {
             ImGui::BulletText("LPM (przeciaganie): Przesuwanie wierzcholka.");
             ImGui::BulletText("Wybrany wierzcholek: w panelu mozna wybrac ciaglosc G0 / G1 / C1 (tylko dozwolone).");
+            ImGui::BulletText("Ctrl+LPM: wybor drugiej krawedzi; w panelu mozna zadac dlugosc odcinka lub rownoleglosc dwoch odcinkow.");
             ImGui::BulletText("Przy wierzcholkach sasiadujacych z krzywa wyswietlana jest ich aktualna klasa ciaglosci.");
             ImGui::BulletText("F1: Wlaczenie / wylaczenie okna dokumentacji.");
         }

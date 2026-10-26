@@ -28,6 +28,12 @@ public:
 
     explicit Scene(std::unique_ptr<Drawer> initialDrawer);
 
+    // the edges are selected by their indices, which stop being valid when the topology changes
+    void clearEdgeSelection() {
+        primarySelectedEdge.invalidate();
+        secondarySelectedEdge.invalidate();
+    }
+
     void clearScene();
     void initPredefinedScene();
     void render(sf::RenderWindow& window) const;
