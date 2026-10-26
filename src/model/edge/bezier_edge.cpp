@@ -16,17 +16,17 @@ BezierEdge::BezierEdge(Vertex *v1, Vertex *v2) : Edge(v1, v2)
     controlPoint2 = std::make_unique<Vertex>(p1 + dir * (2.0f / 3.0f) + normal * 40.0f);
 }
 
-Vertex *BezierEdge::hitTestControlPoint(const sf::Vector2f &pt, float radius) const
+std::optional<ControlHandle> BezierEdge::hitTestControlPoint(const sf::Vector2f &pt, float radius)
 {
     sf::Vector2f d1 = pt - controlPoint1->getPosition();
     if (std::hypot(d1.x, d1.y) <= radius)
-        return controlPoint1.get();
+        return ControlHandle{this, EdgeEnd::Start, controlPoint1.get()};
 
     sf::Vector2f d2 = pt - controlPoint2->getPosition();
     if (std::hypot(d2.x, d2.y) <= radius)
-        return controlPoint2.get();
+        return ControlHandle{this, EdgeEnd::End, controlPoint2.get()};
 
-    return nullptr;
+    return std::nullopt;
 }
 
 void BezierEdge::translateControlPoints(const sf::Vector2f &delta)

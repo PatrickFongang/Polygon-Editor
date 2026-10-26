@@ -11,7 +11,7 @@ private:
     bool isDraggingControlPoint = false;
     bool isDraggingPolygon = false;
 
-    Vertex* draggedControlPoint = nullptr;
+    std::optional<ControlHandle> draggedHandle;
 
     static constexpr float HIT_RADIUS = 8.0f;
     static float distance(const sf::Vector2f& a, const sf::Vector2f& b);

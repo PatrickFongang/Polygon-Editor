@@ -229,7 +229,6 @@ static void testMoveVertexKeepsContinuity() {
 
 static void testDriverControlPoint() {
     auto poly = makeChain(Continuity::G1, Continuity::G1);
-    ContinuityEnforcer enforcer;
     PolygonEditor editor = makeEditor();
     editor.enforceAll(*poly);
 
@@ -238,14 +237,13 @@ static void testDriverControlPoint() {
     auto* bezier = static_cast<BezierEdge*>(poly->getEdge(0));
     float lineLength = poly->getEdge(1)->getLength();
 
-    // user drags the control point of A-B next to B, the line B-C has to turn around B
-    bezier->getControlPoint2()->setPosition({80, 30});
-    EditEvent event;
-    event.seeds = {b};
-    event.driver = bezier;
-    enforcer.apply(event);
+    // user grabs the control point of A-B next to B and drags it, the line B-C has to turn around B
+    auto handle = bezier->hitTestControlPoint(bezier->getControlPoint2()->getPosition(), 5.0f);
+    CHECK(handle.has_value());
+    CHECK(handle->edge == bezier && handle->end == EdgeEnd::End && handle->point == bezier->getControlPoint2());
+    editor.moveControlPoint(*handle, {80, 30});
 
-    CHECK(near(bezier->getControlPoint2()->getPosition(), V(80, 30))); // the dragged point is untouched
+    CHECK(near(bezier->getControlPoint2()->getPosition(), V(80, 30))); // the dragged point follows the cursor
     CHECK(near(b->getPosition(), V(100, 0)));
     CHECK(near(poly->getEdge(1)->getLength(), lineLength));
     CHECK(satisfiedAt(*b));
@@ -253,6 +251,32 @@ static void testDriverControlPoint() {
     CHECK(satisfiedAt(*c));                              // and the Bezier C-D followed the line
     CHECK(near(poly->getVertex(0)->getPosition(), V(0, 0)));
     CHECK(near(poly->getVertex(3)->getPosition(), V(0, 100)));
+}
+
+static void testDriverControlPointOfStartEnd() {
+    // the control point next to the START of the edge: the previous edge (a line D-A) adapts
+    auto poly = makeChain(Continuity::G1, Continuity::G1);
+    poly->getVertex(0)->setContinuity(Continuity::G1);
+    PolygonEditor editor = makeEditor();
+    editor.enforceAll(*poly);
+
+    auto* bezier = static_cast<BezierEdge*>(poly->getEdge(0));
+    auto handle = bezier->hitTestControlPoint(bezier->getControlPoint1()->getPosition(), 5.0f);
+    CHECK(handle.has_value() && handle->end == EdgeEnd::Start);
+    editor.moveControlPoint(*handle, {20, -40});
+
+    CHECK(near(bezier->getControlPoint1()->getPosition(), V(20, -40)));
+    CHECK(near(poly->getVertex(0)->getPosition(), V(0, 0)));
+    CHECK(satisfiedAt(*poly->getVertex(0)));
+    CHECK(!near(poly->getVertex(3)->getPosition(), V(0, 100))); // D moved: the line D-A rotated around A
+}
+
+static void testHitTestMiss() {
+    Vertex a({0, 0}), b({90, 0});
+    BezierEdge bez(&a, &b);
+    CHECK(!bez.hitTestControlPoint({1000, 1000}, 5.0f).has_value());
+    LineEdge line(&a, &b);
+    CHECK(!line.hitTestControlPoint({0, 0}, 5.0f).has_value());
 }
 
 static void testDriverBezierBezierC1() {
@@ -270,11 +294,7 @@ static void testDriverBezierBezierC1() {
 
     auto* first = static_cast<BezierEdge*>(poly->getEdge(0));
     auto* second = static_cast<BezierEdge*>(poly->getEdge(1));
-    first->getControlPoint2()->setPosition({90, -25});
-    EditEvent event;
-    event.seeds = {poly->getVertex(1)};
-    event.driver = first;
-    ContinuityEnforcer().apply(event);
+    editor.moveControlPoint(*first->hitTestControlPoint(first->getControlPoint2()->getPosition(), 5.0f), {90, -25});
 
     CHECK(near(second->getControlPoint1()->getPosition(), V(110, 25))); // reflection of the dragged point
     CHECK(near(first->tangentAt(EdgeEnd::End), second->tangentAt(EdgeEnd::Start)));
@@ -299,6 +319,8 @@ int main() {
     testEnforceAll();
     testMoveVertexKeepsContinuity();
     testDriverControlPoint();
+    testDriverControlPointOfStartEnd();
+    testHitTestMiss();
     testDriverBezierBezierC1();
     testG0IsLeftAlone();
 

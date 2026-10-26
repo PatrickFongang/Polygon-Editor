@@ -60,7 +60,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
         isDraggingVertex = false;
         isDraggingControlPoint = false;
         isDraggingPolygon = false;
-        draggedControlPoint = nullptr;
+        draggedHandle.reset();
 
         auto &polygons = scene.getPolygons();
         bool shiftHeld = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
@@ -108,11 +108,11 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
             const auto &edges = polygons[pIdx]->getEdges();
             for (size_t eIdx = 0; eIdx < edges.size(); ++eIdx)
             {
-                if (Vertex *cp = edges[eIdx]->hitTestControlPoint(mousePos, HIT_RADIUS))
+                if (auto handle = edges[eIdx]->hitTestControlPoint(mousePos, HIT_RADIUS))
                 {
                     scene.selectedPolygonIdx = static_cast<int>(pIdx);
                     scene.selectedVertexIdx = -1;
-                    draggedControlPoint = cp;
+                    draggedHandle = handle;
                     isDraggingControlPoint = true;
                     return;
                 }
@@ -212,7 +212,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
         isDraggingVertex = false;
         isDraggingControlPoint = false;
         isDraggingPolygon = false;
-        draggedControlPoint = nullptr;
+        draggedHandle.reset();
     }
 
     // mouse moved - handle dragging of vertex, control point, or polygon
@@ -229,10 +229,10 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
                 editor.moveVertex(*polygons[scene.selectedPolygonIdx], scene.selectedVertexIdx, mousePos);
             }
         }
-        else if (isDraggingControlPoint && draggedControlPoint != nullptr)
+        else if (isDraggingControlPoint && draggedHandle)
         {
-            // control point follows the mouse cursor directly
-            draggedControlPoint->setPosition(mousePos);
+            // control point follows the mouse cursor directly, the neighbouring edge adapts to keep the continuity
+            editor.moveControlPoint(*draggedHandle, mousePos);
         }
         else if (isDraggingPolygon && scene.selectedPolygonIdx != -1)
         {

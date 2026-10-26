@@ -15,7 +15,7 @@ public:
 
     void draw(const Drawer& drawer) const override;
 
-    Vertex* hitTestControlPoint(const sf::Vector2f& pt, float radius) const override;
+    std::optional<ControlHandle> hitTestControlPoint(const sf::Vector2f& pt, float radius) override;
 
     void translateControlPoints(const sf::Vector2f& delta) override;
 

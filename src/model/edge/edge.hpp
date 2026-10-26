@@ -4,11 +4,23 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <optional>
 #include <SFML/System/Vector2.hpp>
 #include "../../enum/continuity.hpp"
 #include "../../enum/edge_end.hpp"
 #include "../../utils/drawer.hpp"
 #include "../vertex.hpp"
+
+class Edge;
+
+// A draggable control point together with the edge it belongs to and the edge end it is attached to.
+// The edge end tells which vertex the point works with (e.g. Start: the control point next to v1).
+struct ControlHandle
+{
+    Edge* edge;
+    EdgeEnd end;
+    Vertex* point;
+};
 
 class Edge
 {
@@ -31,9 +43,9 @@ public:
     // distanceToPoint calculates the shortest distance from a point to the edge (line segment)
     virtual float distanceToPoint(const sf::Vector2f& pt) const;
 
-    // returns the control point if the click was within the hitbox radius, otherwise returns nullptr
-    virtual Vertex* hitTestControlPoint(const sf::Vector2f& pt, float radius) const {
-        return nullptr;
+    // returns the control point if the click was within the hitbox radius, otherwise returns nullopt
+    virtual std::optional<ControlHandle> hitTestControlPoint(const sf::Vector2f& pt, float radius) {
+        return std::nullopt;
     }
 
     // translates the control points of the edge by a given delta vector
