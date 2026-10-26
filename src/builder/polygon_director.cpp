@@ -6,7 +6,7 @@ std::unique_ptr<Polygon> PolygonDirector::createDemoPolygon1()
         .addVertex(100.0f, 100.0f, Continuity::G0)
         .addVertex(300.0f, 100.0f, Continuity::G1)
         .withLastEdgeAsBezier()
-        .addVertex(200.0f, 250.0f, Continuity::G0)
+        .addVertex(200.0f, 200.0f, Continuity::G0)
         .closePolygon()
         .build();
 }

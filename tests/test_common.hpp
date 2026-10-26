@@ -15,7 +15,7 @@ static int failures = 0;
         }                                                                    \
     } while (0)
 
-static bool near(sf::Vector2f a, sf::Vector2f b, float eps = 1e-3f) { return vec::length(a - b) <= eps; }
-static bool near(float a, float b, float eps = 1e-3f) { return std::abs(a - b) <= eps; }
+[[maybe_unused]] static bool near(sf::Vector2f a, sf::Vector2f b, float eps = 1e-3f) { return vec::length(a - b) <= eps; }
+[[maybe_unused]] static bool near(float a, float b, float eps = 1e-3f) { return std::abs(a - b) <= eps; }
 
 using V = sf::Vector2f;

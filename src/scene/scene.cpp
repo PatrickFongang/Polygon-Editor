@@ -1,5 +1,7 @@
 #include "scene.hpp"
 #include "../builder/polygon_director.hpp"
+#include "../model/constraint/length_constraint.hpp"
+#include "../model/constraint/parallel_constraint.hpp"
 
 Scene::Scene(std::unique_ptr<Drawer> initialDrawer) 
     : currentDrawer(std::move(initialDrawer)) {}
@@ -17,9 +19,21 @@ void Scene::clearScene() {
 void Scene::initPredefinedScene() {
     clearScene();
 
-    // Create predefined polygons using the PolygonDirector
-    polygons.push_back(PolygonDirector::createDemoPolygon1());
-    polygons.push_back(PolygonDirector::createDemoPolygon2());
+    // Polygons: one line for each, built by the PolygonDirector.
+    Polygon& triangle = addPolygon(PolygonDirector::createDemoPolygon1()); // a Bezier edge (0), segments (1, 2)
+    Polygon& diamond = addPolygon(PolygonDirector::createDemoPolygon2());  // an arc (0), segments (1, 2, 3)
+
+    // Constraints: edges are named by the polygon and the index of the edge (the edge i leads from vertex i to
+    // the next one). They only apply to segments. The positions above need not satisfy them: the solver
+    // brings the scene in line when it starts and when it is reset.
+
+    // two constraints on one edge: the length and the parallelism to an edge of the other polygon
+    constraints.add(std::make_unique<LengthConstraint>(triangle.getEdge(1), 150.0f));
+    constraints.add(std::make_unique<ParallelConstraint>(triangle.getEdge(1), diamond.getEdge(3)));
+
+    // a relation between the polygons, and a length of the edge of the second one
+    constraints.add(std::make_unique<ParallelConstraint>(triangle.getEdge(2), diamond.getEdge(2)));
+    constraints.add(std::make_unique<LengthConstraint>(diamond.getEdge(2), 120.0f));
 }
 
 void Scene::render(sf::RenderWindow& window) const {

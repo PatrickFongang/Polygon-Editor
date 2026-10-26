@@ -35,11 +35,19 @@ public:
     }
 
     void clearScene();
+
+    // the demonstration scene shown at the start; add polygons and constraints in initPredefinedScene
     void initPredefinedScene();
     void render(sf::RenderWindow& window) const;
 
     void setDrawer(std::unique_ptr<Drawer> newDrawer) {
         currentDrawer = std::move(newDrawer);
+    }
+
+    // puts the polygon on the scene and returns it, so that constraints can refer to its edges
+    Polygon& addPolygon(std::unique_ptr<Polygon> polygon) {
+        polygons.push_back(std::move(polygon));
+        return *polygons.back();
     }
 
     std::vector<std::unique_ptr<Polygon>>& getPolygons() { return polygons; }
