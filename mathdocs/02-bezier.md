@@ -49,7 +49,7 @@ of $P_3$ is $3$.) These are the tangents used by the continuity algorithm
 tangent at that end:
 
 $$
-P_1 = P_0 + \tfrac{1}{3}B'(0), \qquad P_2 = P_3 - \tfrac{1}{3}B'(1)
+P_1 = P_0 + \frac{1}{3}B'(0), \qquad P_2 = P_3 - \frac{1}{3}B'(1)
 $$
 
 (`BezierEdge::adaptTangent`).
@@ -94,7 +94,7 @@ $$
 Each step then is
 
 $$
-B_{k+1} = B_k + \Delta_1,\qquad \Delta_1 \mathrel{+}= \Delta_2,\qquad \Delta_2 \mathrel{+}= \Delta_3 ,
+B_{k+1} = B_k + \Delta_1,\qquad \Delta_1 \leftarrow \Delta_1 + \Delta_2,\qquad \Delta_2 \leftarrow \Delta_2 + \Delta_3 ,
 $$
 
 which is the loop in `BezierEdge::draw` (`currentPos += delta1; delta1 += delta2; delta2 += delta3;`).
@@ -112,9 +112,9 @@ A segment turned into a Bézier curve gets control points at one third and two t
 $40$ px along the normal of the chord:
 
 $$
-P_1 = P_0 + \tfrac13(P_3 - P_0) + 40\,\hat{\mathbf{n}}, \qquad
-P_2 = P_0 + \tfrac23(P_3 - P_0) + 40\,\hat{\mathbf{n}}, \qquad
-\hat{\mathbf{n}} = \widehat{\operatorname{perp}(P_3 - P_0)} .
+P_1 = P_0 + \frac13(P_3 - P_0) + 40\,\hat{\mathbf{n}}, \qquad
+P_2 = P_0 + \frac23(P_3 - P_0) + 40\,\hat{\mathbf{n}}, \qquad
+\hat{\mathbf{n}} = \hat{\mathrm{perp}(P_3 - P_0)} .
 $$
 
 (The continuity algorithm then immediately corrects them if the end vertices require G1 or C1.)

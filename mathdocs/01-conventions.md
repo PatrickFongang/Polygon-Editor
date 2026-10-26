@@ -13,22 +13,22 @@ $y$ axis. (On the screen that direction looks clockwise; in the formulas it is c
 |---|---|---|
 | $\mathbf{a}\cdot\mathbf{b} = a_x b_x + a_y b_y$ | dot product | `vec::dot` |
 | $\mathbf{a}\times\mathbf{b} = a_x b_y - a_y b_x$ | 2D cross product (a scalar) | `vec::cross` |
-| $\lVert\mathbf{a}\rVert$ | length | `vec::length` |
-| $\hat{\mathbf{a}} = \mathbf{a} / \lVert\mathbf{a}\rVert$ | unit vector ($\hat{\mathbf{0}} = \mathbf{0}$) | `vec::normalized` |
-| $\operatorname{perp}(\mathbf{a}) = (-a_y, a_x)$ | $\mathbf{a}$ turned by $+90^\circ$ | `vec::perp` |
+| $\Vert\mathbf{a}\Vert$ | length | `vec::length` |
+| $\hat{\mathbf{a}} = \mathbf{a} / \Vert\mathbf{a}\Vert$ | unit vector ($\hat{\mathbf{0}} = \mathbf{0}$) | `vec::normalized` |
+| $\mathrm{perp}(\mathbf{a}) = (-a_y, a_x)$ | $\mathbf{a}$ turned by $+90^\circ$ | `vec::perp` |
 
 Useful identities, used throughout:
 
 $$
-\mathbf{a}\cdot\mathbf{b} = \lVert\mathbf{a}\rVert\lVert\mathbf{b}\rVert\cos\theta, \qquad
-\mathbf{a}\times\mathbf{b} = \lVert\mathbf{a}\rVert\lVert\mathbf{b}\rVert\sin\theta, \qquad
-\mathbf{a}\cdot\operatorname{perp}(\mathbf{b}) = \mathbf{b}\times\mathbf{a}
+\mathbf{a}\cdot\mathbf{b} = \Vert\mathbf{a}\Vert\Vert\mathbf{b}\Vert\cos\theta, \qquad
+\mathbf{a}\times\mathbf{b} = \Vert\mathbf{a}\Vert\Vert\mathbf{b}\Vert\sin\theta, \qquad
+\mathbf{a}\cdot\mathrm{perp}(\mathbf{b}) = \mathbf{b}\times\mathbf{a}
 $$
 
 where $\theta$ is the angle **from $\mathbf{a}$ to $\mathbf{b}$**, so that
 
 $$
-\theta = \operatorname{atan2}(\mathbf{a}\times\mathbf{b},\ \mathbf{a}\cdot\mathbf{b}) \in (-\pi, \pi].
+\theta = \mathrm{atan2}(\mathbf{a}\times\mathbf{b},\ \mathbf{a}\cdot\mathbf{b}) \in (-\pi, \pi].
 $$
 
 Rotation of a vector by the angle $\varphi$:
@@ -39,7 +39,7 @@ $$
 
 ## Polygons, edges and traversal order
 
-A polygon has vertices $V_0, \dots, V_{n-1}$. The edge $i$ leads **from $V_i$ to $V_{(i+1) \bmod n}$**. The first
+A polygon has vertices $V_0, \dots, V_{n-1}$. The edge $i$ leads **from $V_i$ to $V_{(i+1) \text{ mod } n}$**. The first
 endpoint of an edge is called its *start* (`EdgeEnd::Start`, vertex `v1`) and the second one its *end*
 (`EdgeEnd::End`, vertex `v2`).
 

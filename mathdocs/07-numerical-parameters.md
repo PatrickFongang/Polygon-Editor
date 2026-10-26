@@ -7,8 +7,8 @@ All the thresholds and limits used by the algorithms in one place.
 | hit radius | $8$ px | [input_handler.hpp](../src/ui/input_handler.hpp) | distance within which the cursor hits a vertex, control point or edge |
 | Bézier drawing steps $N$ | $50$ | [bezier_edge.cpp](../src/model/edge/bezier_edge.cpp) | segments of the polyline of a curve |
 | Bézier / arc distance samples | $100$ | `distanceToPoint` | segments used to measure the distance to a curve |
-| arc drawing segments | $\operatorname{clamp}(\lfloor 30\lvert s\rvert/\pi\rfloor,\ 8,\ 90)$ | [arc_edge.cpp](../src/model/edge/arc_edge.cpp) | $s$ is the sweep; 30 segments per half turn |
-| arc degeneracy | $\lvert\sin\alpha\rvert < 10^{-4}$ | arc_edge.cpp | below this the arc is a straight segment |
+| arc drawing segments | $\mathrm{clamp}(\lfloor 30\vert s\vert/\pi\rfloor,\ 8,\ 90)$ | [arc_edge.cpp](../src/model/edge/arc_edge.cpp) | $s$ is the sweep; 30 segments per half turn |
+| arc degeneracy | $\vert\sin\alpha\vert < 10^{-4}$ | arc_edge.cpp | below this the arc is a straight segment |
 | default Bézier offset | $40$ px | bezier_edge.cpp | normal shift of the initial control points |
 | continuity tolerance | $10^{-3}$ | [continuity_enforcer.hpp](../src/editing/continuity_enforcer.hpp) | sine of the angle (G1) or length (C1) |
 | continuity work queue | $1000$ steps | continuity_enforcer.hpp | limit of the propagation |

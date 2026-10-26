@@ -8,7 +8,7 @@ Code: [bresenham_drawer.cpp](../src/utils/bresenham_drawer.cpp), [edge.cpp](../s
 The line from $(x_0, y_0)$ to $(x_1, y_1)$ is drawn on the integer pixel grid. Let
 
 $$
-d_x = |x_1 - x_0|, \qquad d_y = |y_1 - y_0|, \qquad s_x = \operatorname{sgn}(x_1 - x_0), \qquad s_y = \operatorname{sgn}(y_1 - y_0) .
+d_x = |x_1 - x_0|, \qquad d_y = |y_1 - y_0|, \qquad s_x = \mathrm{sgn}(x_1 - x_0), \qquad s_y = \mathrm{sgn}(y_1 - y_0) .
 $$
 
 The program uses the variant that works in **all octants** with one loop:
@@ -36,11 +36,11 @@ $D$ is $d_x$ times the vertical distance of the pixel row from the ideal line at
 equivalent to
 
 $$
-\text{step in } y \iff 2D < 2d_y - d_x \iff y_{\mathrm{ideal}}(u + 1) > v + \tfrac12,
+\text{step in } y \Leftrightarrow 2D < 2d_y - d_x \Leftrightarrow y_{\mathrm{ideal}}(u + 1) > v + \frac12,
 $$
 
 $$
-\text{step in } x \iff 2D > d_y - 2d_x \iff x_{\mathrm{ideal}}(v + 1) > u + \tfrac12,
+\text{step in } x \Leftrightarrow 2D > d_y - 2d_x \Leftrightarrow x_{\mathrm{ideal}}(v + 1) > u + \frac12,
 $$
 
 where $y_{\mathrm{ideal}}(u) = u\,d_y/d_x$ and $x_{\mathrm{ideal}}(v) = v\,d_x/d_y$ (in step units). In words:
@@ -65,11 +65,11 @@ For the segment $AB$ and the point $p$, let $\mathbf{ab} = B - A$ and $\mathbf{a
 clamped to the segment, is
 
 $$
-t = \operatorname{clamp}\!\left(\frac{\mathbf{ap}\cdot\mathbf{ab}}{\lVert\mathbf{ab}\rVert^2},\ 0,\ 1\right), \qquad
-\operatorname{dist}(p, AB) = \lVert p - (A + t\,\mathbf{ab})\rVert .
+t = \mathrm{clamp}\!\left(\frac{\mathbf{ap}\cdot\mathbf{ab}}{\Vert\mathbf{ab}\Vert^2},\ 0,\ 1\right), \qquad
+\mathrm{dist}(p, AB) = \Vert p - (A + t\,\mathbf{ab})\Vert .
 $$
 
-If $A = B$ the distance is $\lVert p - A\rVert$. (`Edge::distanceToPoint`.)
+If $A = B$ the distance is $\Vert p - A\Vert$. (`Edge::distanceToPoint`.)
 
 ## Distance to a curve or an arc
 

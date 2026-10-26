@@ -22,17 +22,17 @@ proportion to the weights, so a pinned vertex never moves and the rest of the sy
 Constraint on an edge $AB$ with the required length $L$:
 
 $$
-C = \lVert B - A\rVert - L .
+C = \Vert B - A\Vert - L .
 $$
 
-With $d = \lVert B - A\rVert$ and $\hat{\mathbf{u}} = (B - A)/d$ the projection moves the ends along the edge:
+With $d = \Vert B - A\Vert$ and $\hat{\mathbf{u}} = (B - A)/d$ the projection moves the ends along the edge:
 
 $$
 \Delta A = +\frac{w_A}{w_A + w_B}\,(d - L)\,\hat{\mathbf{u}}, \qquad
 \Delta B = -\frac{w_B}{w_A + w_B}\,(d - L)\,\hat{\mathbf{u}} .
 $$
 
-Then $B' - A' = (B - A) - (d - L)\hat{\mathbf{u}}\,\dfrac{w_A + w_B}{w_A + w_B} = L\,\hat{\mathbf{u}}$, so the constraint holds exactly after
+Then $B' - A' = (B - A) - (d - L)\hat{\mathbf{u}}\,\frac{w_A + w_B}{w_A + w_B} = L\,\hat{\mathbf{u}}$, so the constraint holds exactly after
 one step, and the displacement is the smallest possible for the given weights (the correction is shared in proportion
 to the weights and the edge keeps its direction).
 
@@ -50,7 +50,7 @@ Two edges with the directions $\mathbf{d}_1$ and $\mathbf{d}_2$ lie on parallel 
 is zero. The angle from $\mathbf{d}_1$ to $\mathbf{d}_2$ is
 
 $$
-\theta = \operatorname{atan2}(\mathbf{d}_1\times\mathbf{d}_2,\ \mathbf{d}_1\cdot\mathbf{d}_2) \in (-\pi, \pi],
+\theta = \mathrm{atan2}(\mathbf{d}_1\times\mathbf{d}_2,\ \mathbf{d}_1\cdot\mathbf{d}_2) \in (-\pi, \pi],
 $$
 
 and since opposite directions are parallel as well, it is wrapped modulo $\pi$ to the smallest equivalent rotation:
@@ -83,7 +83,7 @@ not pinned ($R$ from [01-conventions.md](01-conventions.md)). The pivot is
 A rotation preserves the length of an edge, so parallelism does not break a length constraint on the same edge (up to the
 shared-vertex case below).
 
-Example (as in the tests): $e_1 = (0,0)\to(100,0)$, $e_2 = (0,50)\to(100,80)$. $\theta = \operatorname{atan2}(30, 100) \approx 16.7^\circ$
+Example (as in the tests): $e_1 = (0,0)\to(100,0)$, $e_2 = (0,50)\to(100,80)$. $\theta = \mathrm{atan2}(30, 100) \approx 16.7^\circ$
 and each edge turns by $\approx 8.35^\circ$ around its midpoint.
 
 **Edges sharing a vertex.** The two rotations are applied one after another, so the second one already sees the
@@ -116,8 +116,8 @@ element held by the user keeps following the cursor.
 
 For ordinary edits the loop settles after one or two rounds. A contradictory case is a C1 vertex $V$ between a Bézier
 (control point $P_2$ next to $V$) and a segment $VW$ with a fixed length $L$: C1 requires $W - V = 3(V - P_2)$, so
-$\lVert VW\rVert = 3\lVert V - P_2\rVert$, while the constraint requires $L$. When the user drags $P_2$ so that
-$3\lVert V - P_2\rVert \ne L$, the two rules keep undoing each other until the limit of the rounds is reached; the dragged
+$\Vert VW\Vert = 3\Vert V - P_2\Vert$, while the constraint requires $L$. When the user drags $P_2$ so that
+$3\Vert V - P_2\Vert \ne L$, the two rules keep undoing each other until the limit of the rounds is reached; the dragged
 control point stays where the user holds it.
 
 ## Constraint lifetime

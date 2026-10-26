@@ -28,7 +28,7 @@ a long and a short edge forces their *derivative vectors* to be equal, not their
 
 The enforcer checks the relations with a tolerance $\varepsilon = 10^{-3}$
 (`ContinuityStrategy::isSatisfied`): for G1, $|\hat{\mathbf{T}}_{\mathrm{in}}\times\hat{\mathbf{T}}_{\mathrm{out}}| \le \varepsilon$ (the sine of the angle between the
-tangents, about $0.06^\circ$); for C1, $\lVert\mathbf{T}_{\mathrm{in}} - \mathbf{T}_{\mathrm{out}}\rVert \le \varepsilon$.
+tangents, about $0.06^\circ$); for C1, $\Vert\mathbf{T}_{\mathrm{in}} - \mathbf{T}_{\mathrm{out}}\Vert \le \varepsilon$.
 
 ## Repairing a broken vertex: the follower
 
@@ -42,12 +42,12 @@ where $f$ is defined by the class (`ContinuityStrategy::desiredFollower`):
 
 $$
 f_{G0} = \text{(no change)}, \qquad
-f_{G1} = \lVert\mathbf{T}_{\mathrm{follower}}\rVert\,\hat{\mathbf{T}}_{\mathrm{driver}}, \qquad
+f_{G1} = \Vert\mathbf{T}_{\mathrm{follower}}\Vert\,\hat{\mathbf{T}}_{\mathrm{driver}}, \qquad
 f_{C1} = \mathbf{T}_{\mathrm{driver}} .
 $$
 
 For G1 the follower keeps its own length (so the "shape" of the follower changes as little as possible). If the
-follower's tangent is zero it borrows $\lVert\mathbf{T}_{\mathrm{driver}}\rVert$; if the driver's tangent is zero there is no
+follower's tangent is zero it borrows $\Vert\mathbf{T}_{\mathrm{driver}}\Vert$; if the driver's tangent is zero there is no
 direction to follow and nothing is done.
 
 Both tangents are oriented along the traversal, so the same formula works whether the follower is the next edge
@@ -56,8 +56,8 @@ type:
 
 | Follower | Realisation of the new tangent $\mathbf{T}'$ at the vertex $V$ |
 |---|---|
-| **Bézier**, next edge | $P_1 = V + \tfrac13\mathbf{T}'$ (control point next to $V$) |
-| **Bézier**, previous edge | $P_2 = V - \tfrac13\mathbf{T}'$ |
+| **Bézier**, next edge | $P_1 = V + \frac13\mathbf{T}'$ (control point next to $V$) |
+| **Bézier**, previous edge | $P_2 = V - \frac13\mathbf{T}'$ |
 | **segment** $VW$, next edge | $W' = V + \mathbf{T}'$: the other end moves; the segment **turns around $V$** (for G1 the length is unchanged) |
 | **segment** $UV$, previous edge | $U' = V - \mathbf{T}'$ |
 | **arc** | remembers the **anchor** direction $\hat{\mathbf{T}}'$ at that end; the arc is recomputed from it ([03-arc.md](03-arc.md)) |
@@ -65,11 +65,11 @@ type:
 Examples:
 
 * **G1, Bézier follows a segment.** Segment $UV$ is the driver, the Bézier starts at $V$:
-  $\mathbf{T}_{\mathrm{in}} = V - U$ and $P_1' = V + \lVert P_1 - V\rVert\,\widehat{V - U}$ - the control point is moved onto the
+  $\mathbf{T}_{\mathrm{in}} = V - U$ and $P_1' = V + \Vert P_1 - V\Vert\,\hat{V - U}$ - the control point is moved onto the
   line of the segment, keeping its distance from $V$.
 * **C1 between two Béziers.** With $B_1'(1) = 3(V - P_2)$ and $B_2'(0) = 3(P_1 - V)$ the condition
   $\mathbf{T}_{\mathrm{in}} = \mathbf{T}_{\mathrm{out}}$ gives $P_1 = 2V - P_2$: the control points are mirror images of each other through $V$.
-* **C1, Bézier and segment.** $P_1 = V + \tfrac13(W - V)$: the control point lies one third along the segment.
+* **C1, Bézier and segment.** $P_1 = V + \frac13(W - V)$: the control point lies one third along the segment.
 
 Note that **an arc cannot take part in C1**. The length of its tangent is the arc length $r|s|$, which is determined by
 the geometry, so only the *direction* can be imposed. This is why the arc supports only G0 and G1

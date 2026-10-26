@@ -2,7 +2,7 @@
 
 Code: [arc_edge.cpp](../src/model/edge/arc_edge.cpp).
 
-An arc edge joins $P$ (start) and $Q$ (end). Write $\mathbf{c} = Q - P$ for the chord and $\ell = \lVert\mathbf{c}\rVert$.
+An arc edge joins $P$ (start) and $Q$ (end). Write $\mathbf{c} = Q - P$ for the chord and $\ell = \Vert\mathbf{c}\Vert$.
 
 A circular arc through two points is not unique, so the program fixes it with the continuity requirements:
 
@@ -24,36 +24,36 @@ $$
 Given the tangent direction $\hat{\mathbf{t}}$ at $P$ (the unit vector pointing along the traversal).
 
 **Centre.** The centre lies on the normal of the tangent at $P$, so $C = P + R\,\mathbf{n}$ with
-$\mathbf{n} = \operatorname{perp}(\hat{\mathbf{t}})$ and a signed distance $R$. The condition $\lVert C - Q\rVert = |R|$ gives
+$\mathbf{n} = \mathrm{perp}(\hat{\mathbf{t}})$ and a signed distance $R$. The condition $\Vert C - Q\Vert = |R|$ gives
 
 $$
-\lVert R\mathbf{n} - \mathbf{c}\rVert^2 = R^2
-\;\Longrightarrow\;
+\Vert R\mathbf{n} - \mathbf{c}\Vert^2 = R^2
+\;\Rightarrow\;
 \ell^2 - 2R\,\mathbf{n}\cdot\mathbf{c} = 0
-\;\Longrightarrow\;
+\;\Rightarrow\;
 R = \frac{\ell^2}{2\,\mathbf{n}\cdot\mathbf{c}} = \frac{\ell^2}{2\,(\hat{\mathbf{t}}\times\mathbf{c})} .
 $$
 
-With $\sin\alpha = \dfrac{\hat{\mathbf{t}}\times\mathbf{c}}{\ell}$ this is
+With $\sin\alpha = \frac{\hat{\mathbf{t}}\times\mathbf{c}}{\ell}$ this is
 
 $$
-\boxed{R = \frac{\ell}{2\sin\alpha}}, \qquad r = |R|, \qquad C = P + R\,\operatorname{perp}(\hat{\mathbf{t}}).
+R = \frac{\ell}{2\sin\alpha}, \qquad r = |R|, \qquad C = P + R\,\mathrm{perp}(\hat{\mathbf{t}}).
 $$
 
 **Sweep.** Let $\alpha$ be the angle **from the tangent to the chord**,
-$\alpha = \operatorname{atan2}(\hat{\mathbf{t}}\times\mathbf{c},\ \hat{\mathbf{t}}\cdot\mathbf{c}) \in (-\pi, \pi]$.
+$\alpha = \mathrm{atan2}(\hat{\mathbf{t}}\times\mathbf{c},\ \hat{\mathbf{t}}\cdot\mathbf{c}) \in (-\pi, \pi]$.
 By the tangent-chord theorem the angle between the tangent and the chord equals **half of the central angle**
 subtending the chord, therefore
 
 $$
-\boxed{s = 2\alpha}.
+s = 2\alpha.
 $$
 
 For $|\alpha| > \pi/2$ the tangent points away from $Q$ and the arc is longer than a semicircle; the formula covers
 this case without any special treatment. The sign of $\alpha$ tells on which side of the tangent the arc curves,
 and it is the sign of $R$ and of $s$ as well.
 
-**Start angle.** $\theta_0 = \operatorname{atan2}(P_y - C_y,\ P_x - C_x)$.
+**Start angle.** $\theta_0 = \mathrm{atan2}(P_y - C_y,\ P_x - C_x)$.
 
 **Check.** The derivative is
 
@@ -61,7 +61,7 @@ $$
 X'(t) = r\,s\,(-\sin(\theta_0 + st),\ \cos(\theta_0 + st)),
 $$
 
-so $X'(0) = r\,s\,\operatorname{perp}\!\big(\widehat{P - C}\big)$, which is perpendicular to the radius $P - C$
+so $X'(0) = r\,s\,\mathrm{perp}\,(\hat{P - C})$, which is perpendicular to the radius $P - C$
 (a tangent) and has the direction of $\hat{\mathbf{t}}$ (the signs of $s$ and of $R$ cancel). Its length
 $r\,|s|$ is the **length of the arc**.
 
@@ -70,8 +70,8 @@ $r\,|s|$ is the **length of the arc**.
 $P = (0, 0)$, $Q = (100, 0)$, tangent $\hat{\mathbf{t}} = (1, 1)/\sqrt2$. Then $\mathbf{c} = (100, 0)$, $\ell = 100$,
 
 $$
-\hat{\mathbf{t}}\times\mathbf{c} = \tfrac{1}{\sqrt2}(1\cdot 0 - 1\cdot 100) = -\tfrac{100}{\sqrt2}, \qquad
-\sin\alpha = -\tfrac{1}{\sqrt2}, \qquad \alpha = -45^\circ,
+\hat{\mathbf{t}}\times\mathbf{c} = \frac{1}{\sqrt2}(1\cdot 0 - 1\cdot 100) = -\frac{100}{\sqrt2}, \qquad
+\sin\alpha = -\frac{1}{\sqrt2}, \qquad \alpha = -45^\circ,
 $$
 
 $$
@@ -79,10 +79,10 @@ R = \frac{100}{2\cdot(-1/\sqrt2)} = -50\sqrt2 \approx -70.7, \qquad s = -90^\cir
 $$
 
 $$
-C = P + R\,\operatorname{perp}(\hat{\mathbf{t}}) = (0,0) + (-70.7)\cdot\tfrac{1}{\sqrt2}(-1, 1) = (50, -50).
+C = P + R\,\mathrm{perp}(\hat{\mathbf{t}}) = (0,0) + (-70.7)\cdot\frac{1}{\sqrt2}(-1, 1) = (50, -50).
 $$
 
-Indeed $\lVert C - P\rVert = \lVert C - Q\rVert = 50\sqrt2$ and $(P - C)\cdot\hat{\mathbf{t}} = 0$.
+Indeed $\Vert C - P\Vert = \Vert C - Q\Vert = 50\sqrt2$ and $(P - C)\cdot\hat{\mathbf{t}} = 0$.
 
 ## Arc with a tangent at the end
 
@@ -100,7 +100,7 @@ $$
 ## Arc without a tangent (semicircle)
 
 $$
-C = \frac{P + Q}{2}, \qquad r = \frac{\ell}{2}, \qquad s = +\pi, \qquad \theta_0 = \operatorname{atan2}(P - C).
+C = \frac{P + Q}{2}, \qquad r = \frac{\ell}{2}, \qquad s = +\pi, \qquad \theta_0 = \mathrm{atan2}(P - C).
 $$
 
 This is the general case with $\alpha = +90^\circ$ (the tangent is perpendicular to the chord).
@@ -124,5 +124,5 @@ anchor direction.
 
 ## Drawing
 
-The arc is drawn as a polyline of $\operatorname{clamp}(\lfloor 30\,|s|/\pi \rfloor, 8, 90)$ segments between the points
+The arc is drawn as a polyline of $\mathrm{clamp}(\lfloor 30\,|s|/\pi \rfloor, 8, 90)$ segments between the points
 $X(k/m)$.
