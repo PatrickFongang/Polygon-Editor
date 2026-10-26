@@ -114,12 +114,7 @@ void Polygon::moveVertex(size_t vertexIndex, const sf::Vector2f &newPosition)
 {
     if (vertexIndex >= vertices.size()) return;
 
-    Vertex *v = vertices[vertexIndex].get();
-    sf::Vector2f delta = newPosition - v->getPosition();
-    v->setPosition(newPosition);
-
-    if (v->getPrevEdge()) v->getPrevEdge()->onEndpointMoved(v, delta);
-    if (v->getNextEdge()) v->getNextEdge()->onEndpointMoved(v, delta);
+    vertices[vertexIndex]->moveWithEdges(newPosition);
 }
 
 void Polygon::translate(const sf::Vector2f &delta)

@@ -3,7 +3,10 @@
 #include <memory>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 #include <SFML/System/Vector2.hpp>
+#include "../../enum/continuity.hpp"
+#include "../../enum/edge_end.hpp"
 #include "../../utils/drawer.hpp"
 #include "../vertex.hpp"
 
@@ -37,6 +40,19 @@ public:
     virtual void translateControlPoints(const sf::Vector2f& delta) {}
 
     virtual void onEndpointMoved(Vertex* movedVertex, const sf::Vector2f& delta) {}
+
+    // derivative of the edge at the given end (parameter t in [0, 1]), oriented along the traversal of the polygon
+    virtual sf::Vector2f tangentAt(EdgeEnd end) const = 0;
+
+    // changes the edge so that tangentAt(end) == desired, keeping the vertex at that end in place
+    // returns the vertices that had to be moved to achieve it (the caller must re-check their continuity)
+    virtual std::vector<Vertex*> adaptTangent(EdgeEnd end, const sf::Vector2f& desired) = 0;
+
+    // can this edge be a neighbour of a vertex with the given continuity class?
+    virtual bool supports(Continuity continuity) const { return true; }
+
+    // how willing the edge is to give way when a continuity relation has to be restored: lower adapts first
+    virtual int adaptCost() const = 0;
 
     // draws any helper elements (like control points) for the edge
     virtual void drawHelpers(sf::RenderWindow& window) const {}

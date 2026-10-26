@@ -17,6 +17,13 @@ app: $(OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# Testy matematyki ciągłości (bez okna i bez ImGui)
+TEST_SRC = tests/test_continuity.cpp src/model/vertex.cpp src/model/edge/edge.cpp src/model/edge/line_edge.cpp src/model/edge/bezier_edge.cpp src/model/edge/arc_edge.cpp
+
+test: $(TEST_SRC)
+	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o tests/run_tests $(LDFLAGS)
+	./tests/run_tests
+
 # Reguła czyszcząca
 clean:
 	rm -f $(OBJS) app

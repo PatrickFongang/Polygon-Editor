@@ -79,3 +79,11 @@ float ArcEdge::distanceToPoint(const sf::Vector2f& pt) const {
     
     return minDist;
 }
+
+// the arc runs a half turn around the midpoint of the chord: P(t) = C + r (cos(a0 + pi t), sin(a0 + pi t))
+// so P'(0) = pi * perp(r) and P'(1) = -pi * perp(r), where r = v1 - C
+sf::Vector2f ArcEdge::tangentAt(EdgeEnd end) const {
+    sf::Vector2f radiusVec = (v1->getPosition() - v2->getPosition()) * 0.5f;
+    sf::Vector2f derivative = static_cast<float>(M_PI) * vec::perp(radiusVec);
+    return end == EdgeEnd::Start ? derivative : -derivative;
+}

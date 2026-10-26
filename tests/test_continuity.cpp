@@ -1,0 +1,179 @@
+// Unit tests of the continuity math: strategies (pure vector math) and the tangent interface of edges.
+// No window or OpenGL context is created.
+#include <cmath>
+#include <cstdio>
+#include "model/continuity_strategy.hpp"
+#include "model/vertex.hpp"
+#include "model/edge/line_edge.hpp"
+#include "model/edge/bezier_edge.hpp"
+#include "model/edge/arc_edge.hpp"
+
+static int failures = 0;
+
+#define CHECK(cond)                                                          \
+    do {                                                                     \
+        if (!(cond)) {                                                       \
+            std::printf("FAIL %s:%d  %s\n", __FILE__, __LINE__, #cond);      \
+            ++failures;                                                      \
+        }                                                                    \
+    } while (0)
+
+static bool near(sf::Vector2f a, sf::Vector2f b, float eps = 1e-3f) { return vec::length(a - b) <= eps; }
+
+using V = sf::Vector2f;
+
+static void testG0() {
+    const auto& g0 = ContinuityStrategy::get(Continuity::G0);
+    CHECK(g0.getType() == Continuity::G0);
+    CHECK(!g0.desiredFollower({1, 0}, {0, 5}).has_value());
+    CHECK(g0.isSatisfied({1, 0}, {-1, 0}, 1e-3f));
+}
+
+static void testG1() {
+    const auto& g1 = ContinuityStrategy::get(Continuity::G1);
+    CHECK(g1.getType() == Continuity::G1);
+
+    // follower takes the direction of the driver but keeps its own length
+    auto d = g1.desiredFollower({3, 4}, {0, -10});
+    CHECK(d.has_value() && near(*d, V(6, 8)));
+
+    // degenerate follower borrows the driver's length
+    d = g1.desiredFollower({0, 2}, {0, 0});
+    CHECK(d.has_value() && near(*d, V(0, 2)));
+
+    // a zero driver gives no direction to follow
+    CHECK(!g1.desiredFollower({0, 0}, {1, 1}).has_value());
+
+    CHECK(g1.isSatisfied({1, 0}, {5, 0}, 1e-3f));
+    CHECK(!g1.isSatisfied({1, 0}, {-5, 0}, 1e-3f)); // opposite direction is a cusp, not G1
+    CHECK(!g1.isSatisfied({1, 0}, {1, 1}, 1e-3f));
+    CHECK(g1.isSatisfied({1, 0}, {0, 0}, 1e-3f));
+
+    // the result of desiredFollower always satisfies the relation
+    V driver(2, -7), follower(-3, 1);
+    CHECK(g1.isSatisfied(driver, *g1.desiredFollower(driver, follower), 1e-4f));
+}
+
+static void testC1() {
+    const auto& c1 = ContinuityStrategy::get(Continuity::C1);
+    CHECK(c1.getType() == Continuity::C1);
+
+    auto d = c1.desiredFollower({3, 4}, {0, -10});
+    CHECK(d.has_value() && near(*d, V(3, 4)));
+
+    CHECK(c1.isSatisfied({1, 2}, {1, 2}, 1e-3f));
+    CHECK(!c1.isSatisfied({1, 2}, {2, 4}, 1e-3f)); // same direction, different length: only G1
+}
+
+static void testLineTangent() {
+    Vertex a({10, 10}), b({40, 50});
+    LineEdge line(&a, &b);
+    CHECK(near(line.tangentAt(EdgeEnd::Start), V(30, 40)));
+    CHECK(near(line.tangentAt(EdgeEnd::End), V(30, 40)));
+
+    // adapting at the start keeps the start vertex and moves the end
+    auto moved = line.adaptTangent(EdgeEnd::Start, {0, 20});
+    CHECK(moved.size() == 1 && moved[0] == &b);
+    CHECK(near(a.getPosition(), V(10, 10)));
+    CHECK(near(b.getPosition(), V(10, 30)));
+
+    // adapting at the end keeps the end vertex and moves the start
+    moved = line.adaptTangent(EdgeEnd::End, {5, 0});
+    CHECK(moved.size() == 1 && moved[0] == &a);
+    CHECK(near(b.getPosition(), V(10, 30)));
+    CHECK(near(a.getPosition(), V(5, 30)));
+    CHECK(near(line.tangentAt(EdgeEnd::End), V(5, 0)));
+}
+
+static void testBezierTangent() {
+    Vertex a({0, 0}), b({90, 0});
+    BezierEdge bez(&a, &b);
+    bez.getControlPoint1()->setPosition({30, 30});
+    bez.getControlPoint2()->setPosition({60, 30});
+
+    CHECK(near(bez.tangentAt(EdgeEnd::Start), V(90, 90)));
+    CHECK(near(bez.tangentAt(EdgeEnd::End), V(90, -90)));
+
+    CHECK(bez.adaptTangent(EdgeEnd::Start, {0, 30}).empty());
+    CHECK(near(bez.getControlPoint1()->getPosition(), V(0, 10)));
+    CHECK(near(bez.tangentAt(EdgeEnd::Start), V(0, 30)));
+
+    CHECK(bez.adaptTangent(EdgeEnd::End, {30, 0}).empty());
+    CHECK(near(bez.getControlPoint2()->getPosition(), V(80, 0)));
+    CHECK(near(bez.tangentAt(EdgeEnd::End), V(30, 0)));
+    CHECK(near(b.getPosition(), V(90, 0))); // vertices stay in place
+}
+
+static void testArcTangent() {
+    Vertex a({0, 0}), b({100, 0});
+    ArcEdge arc(&a, &b);
+
+    // semicircle with the radius 50 and the center (50, 0); compare with a finite difference of the arc
+    float r = 50.0f;
+    V center(50, 0);
+    float a0 = std::atan2(a.getPosition().y - center.y, a.getPosition().x - center.x);
+    auto point = [&](float t) {
+        float ang = a0 + static_cast<float>(M_PI) * t;
+        return V(center.x + r * std::cos(ang), center.y + r * std::sin(ang));
+    };
+    const float h = 1e-3f;
+    V numStart = (point(h) - point(0.0f)) / h;
+    V numEnd = (point(1.0f) - point(1.0f - h)) / h;
+    CHECK(near(arc.tangentAt(EdgeEnd::Start), numStart, 0.5f));
+    CHECK(near(arc.tangentAt(EdgeEnd::End), numEnd, 0.5f));
+
+    CHECK(arc.supports(Continuity::G0));
+    CHECK(arc.supports(Continuity::G1));
+    CHECK(!arc.supports(Continuity::C1));
+}
+
+// Whole round trip of the intended use: a driver tangent produces the follower tangent through the strategy
+static void testStrategyWithEdges() {
+    // two Bezier edges meeting at m, user dragged the control point of the first one
+    Vertex p({0, 0}), m({100, 0}), q({200, 0});
+    BezierEdge first(&p, &m), second(&m, &q);
+    first.getControlPoint2()->setPosition({80, 40});
+    second.getControlPoint1()->setPosition({130, 0});
+
+    for (Continuity c : {Continuity::G1, Continuity::C1}) {
+        const auto& strategy = ContinuityStrategy::get(c);
+        V driver = first.tangentAt(EdgeEnd::End);
+        V follower = second.tangentAt(EdgeEnd::Start);
+        if (auto desired = strategy.desiredFollower(driver, follower))
+            second.adaptTangent(EdgeEnd::Start, *desired);
+        CHECK(strategy.isSatisfied(driver, second.tangentAt(EdgeEnd::Start), 1e-4f));
+    }
+    CHECK(near(second.tangentAt(EdgeEnd::Start), first.tangentAt(EdgeEnd::End))); // C1 ran last
+}
+
+static void testVertexMoveWithEdges() {
+    Vertex a({0, 0}), b({90, 0}), c({90, 90});
+    BezierEdge bez(&a, &b);
+    LineEdge line(&b, &c);
+    a.setNextEdge(&bez);
+    b.setPrevEdge(&bez);
+    b.setNextEdge(&line);
+    c.setPrevEdge(&line);
+
+    V cp2Before = bez.getControlPoint2()->getPosition();
+    V cp1Before = bez.getControlPoint1()->getPosition();
+    b.moveWithEdges({100, 20});
+    CHECK(near(b.getPosition(), V(100, 20)));
+    CHECK(near(bez.getControlPoint2()->getPosition(), cp2Before + V(10, 20))); // follows its endpoint
+    CHECK(near(bez.getControlPoint1()->getPosition(), cp1Before));
+}
+
+int main() {
+    testG0();
+    testG1();
+    testC1();
+    testLineTangent();
+    testBezierTangent();
+    testArcTangent();
+    testStrategyWithEdges();
+    testVertexMoveWithEdges();
+
+    if (failures == 0)
+        std::printf("all continuity tests passed\n");
+    return failures == 0 ? 0 : 1;
+}

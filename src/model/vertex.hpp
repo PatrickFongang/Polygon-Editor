@@ -15,22 +15,25 @@ public:
     bool hasPredefinedContinuity = false; // Flag to indicate if the vertex has a predefined continuity
 
     Vertex()
-        : position(0.f, 0.f), color(sf::Color::White), continuityStrategy(ContinuityStrategy::create(Continuity::G1)) {}
+        : position(0.f, 0.f), color(sf::Color::White), continuity(Continuity::G1) {}
 
     Vertex(sf::Vector2f pos, sf::Color col = sf::Color::White, Continuity cont = Continuity::G1)
-        : position(pos), color(col), continuityStrategy(ContinuityStrategy::create(cont)) {}
+        : position(pos), color(col), continuity(cont) {}
 
     sf::Vector2f getPosition() const { return position; }
     void setPosition(const sf::Vector2f &pos) { position = pos; }
     void move(const sf::Vector2f &delta) { position += delta; }
 
+    // moves the vertex and lets the adjacent edges react (e.g. Bezier control points follow the endpoint)
+    void moveWithEdges(const sf::Vector2f &pos);
+
     sf::Color getColor() const { return color; }
     void setColor(const sf::Color &col) { color = col; }
 
-    Continuity getContinuity() const { return continuityStrategy->getType(); }
-    void setContinuity(Continuity cont) { continuityStrategy = ContinuityStrategy::create(cont); }
+    Continuity getContinuity() const { return continuity; }
+    void setContinuity(Continuity cont) { continuity = cont; }
 
-    const ContinuityStrategy* getContinuityStrategy() const { return continuityStrategy.get(); }
+    const ContinuityStrategy &getContinuityStrategy() const { return ContinuityStrategy::get(continuity); }
 
     Edge *getPrevEdge() const { return prevEdge; }
     void setPrevEdge(Edge *edge) { prevEdge = edge; }
@@ -43,5 +46,5 @@ private:
     sf::Color color;
     Edge *prevEdge = nullptr;
     Edge *nextEdge = nullptr;
-    std::unique_ptr<ContinuityStrategy> continuityStrategy;
-};
+    Continuity continuity;
+};

@@ -21,6 +21,12 @@ public:
 
     void onEndpointMoved(Vertex* movedVertex, const sf::Vector2f& delta) override;
 
+    // B'(0) = 3 (P1 - P0), B'(1) = 3 (P3 - P2)
+    sf::Vector2f tangentAt(EdgeEnd end) const override;
+    // moves the control point next to the end, no vertex has to move
+    std::vector<Vertex*> adaptTangent(EdgeEnd end, const sf::Vector2f& desired) override;
+    int adaptCost() const override { return 1; }
+
     float distanceToPoint(const sf::Vector2f& pt) const override;
     void drawHelpers(sf::RenderWindow& window) const override;
 };

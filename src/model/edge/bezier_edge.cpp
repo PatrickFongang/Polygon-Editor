@@ -43,6 +43,22 @@ void BezierEdge::onEndpointMoved(Vertex *movedVertex, const sf::Vector2f &delta)
         controlPoint2->move(delta);
 }
 
+sf::Vector2f BezierEdge::tangentAt(EdgeEnd end) const
+{
+    if (end == EdgeEnd::Start)
+        return 3.0f * (controlPoint1->getPosition() - v1->getPosition());
+    return 3.0f * (v2->getPosition() - controlPoint2->getPosition());
+}
+
+std::vector<Vertex *> BezierEdge::adaptTangent(EdgeEnd end, const sf::Vector2f &desired)
+{
+    if (end == EdgeEnd::Start)
+        controlPoint1->setPosition(v1->getPosition() + desired / 3.0f);
+    else
+        controlPoint2->setPosition(v2->getPosition() - desired / 3.0f);
+    return {};
+}
+
 void BezierEdge::draw(const Drawer &drawer) const
 {
     const int N = 50;
