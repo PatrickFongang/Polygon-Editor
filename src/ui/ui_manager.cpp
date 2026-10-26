@@ -22,8 +22,27 @@ UIManager::UIManager(PolygonEditor &polygonEditor) : editor(polygonEditor)
          { return std::make_unique<BresenhamDrawer>(w); }}};
 }
 
+void UIManager::drawContinuityLabels(Scene &scene, sf::RenderWindow &window)
+{
+    ImDrawList *drawList = ImGui::GetBackgroundDrawList();
+    for (auto &polygon : scene.getPolygons())
+    {
+        for (const auto &vertex : polygon->getVertices())
+        {
+            if (!ContinuityPolicy::matters(*vertex))
+                continue;
+
+            sf::Vector2i pixel = window.mapCoordsToPixel(vertex->getPosition());
+            const char *name = continuityName(ContinuityPolicy::effective(*vertex));
+            drawList->AddText(ImVec2(pixel.x + 9.0f, pixel.y - 20.0f), IM_COL32(255, 220, 120, 255), name);
+        }
+    }
+}
+
 void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
 {
+    drawContinuityLabels(scene, window);
+
     ImGui::Begin("Panel Sterowania");
 
     // choice of drawing algorithm
@@ -105,7 +124,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
             ImGui::Separator();
             ImGui::Text("Wybrany wierzcholek: Wielokat #%d, Wierzcholek #%d",
                         scene.selectedPolygonIdx, scene.selectedVertexIdx);
-            ImGui::Text("Ciaglosc w wierzcholku:");
+            ImGui::Text("Ciaglosc w wierzcholku: %s", continuityName(ContinuityPolicy::effective(*v)));
             std::vector<Continuity> allowed = ContinuityPolicy::allowed(*v);
             if (allowed.size() <= 1)
             {
@@ -145,6 +164,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
         {
             ImGui::BulletText("LPM (przeciaganie): Przesuwanie wierzcholka.");
             ImGui::BulletText("Wybrany wierzcholek: w panelu mozna wybrac ciaglosc G0 / G1 / C1 (tylko dozwolone).");
+            ImGui::BulletText("Przy wierzcholkach sasiadujacych z krzywa wyswietlana jest ich aktualna klasa ciaglosci.");
             ImGui::BulletText("F1: Wlaczenie / wylaczenie okna dokumentacji.");
         }
         ImGui::End();

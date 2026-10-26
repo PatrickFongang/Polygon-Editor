@@ -23,6 +23,9 @@ private:
 
     PolygonEditor& editor;
 
+    // writes the continuity class next to every vertex where it matters
+    void drawContinuityLabels(Scene& scene, sf::RenderWindow& window);
+
 public:
     explicit UIManager(PolygonEditor& polygonEditor);
     

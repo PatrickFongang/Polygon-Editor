@@ -13,6 +13,9 @@ public:
     // (G1 for surnames A-K, C1 for surnames L-Z)
     static constexpr Continuity DEFAULT = Continuity::G1;
 
+    // does the continuity matter at the vertex, i.e. is at least one of the adjacent edges curved?
+    static bool matters(const Vertex& vertex);
+
     // can the vertex have this continuity? Rules:
     //  - continuity concerns only vertices with at least one curved edge, the others are G0,
     //  - both edges must support the class (an arc has no C1),

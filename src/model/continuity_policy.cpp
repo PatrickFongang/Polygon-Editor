@@ -10,6 +10,13 @@ namespace
     }
 }
 
+bool ContinuityPolicy::matters(const Vertex& vertex)
+{
+    const Edge* prev = vertex.getPrevEdge();
+    const Edge* next = vertex.getNextEdge();
+    return prev && next && (prev->isCurved() || next->isCurved());
+}
+
 bool ContinuityPolicy::isAllowed(const Vertex& vertex, Continuity continuity)
 {
     if (continuity == Continuity::G0)
