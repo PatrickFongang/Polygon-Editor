@@ -1,5 +1,17 @@
 #include "ui_manager.hpp"
 #include "imgui.h"
+#include "../model/continuity_policy.hpp"
+
+static const char *continuityName(Continuity continuity)
+{
+    switch (continuity)
+    {
+    case Continuity::G0: return "G0";
+    case Continuity::G1: return "G1";
+    case Continuity::C1: return "C1";
+    }
+    return "";
+}
 
 UIManager::UIManager(PolygonEditor &polygonEditor) : editor(polygonEditor)
 {
@@ -93,6 +105,28 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
             ImGui::Separator();
             ImGui::Text("Wybrany wierzcholek: Wielokat #%d, Wierzcholek #%d",
                         scene.selectedPolygonIdx, scene.selectedVertexIdx);
+            ImGui::Text("Ciaglosc w wierzcholku:");
+            std::vector<Continuity> allowed = ContinuityPolicy::allowed(*v);
+            if (allowed.size() <= 1)
+            {
+                ImGui::TextDisabled("G0 (brak krzywej przy wierzcholku)");
+            }
+            else
+            {
+                Continuity current = ContinuityPolicy::effective(*v);
+                for (size_t i = 0; i < allowed.size(); ++i)
+                {
+                    if (ImGui::RadioButton(continuityName(allowed[i]), current == allowed[i]))
+                    {
+                        editor.setContinuity(*v, allowed[i]);
+                    }
+                    if (i + 1 < allowed.size())
+                        ImGui::SameLine();
+                }
+                if (!v->hasExplicitContinuity)
+                    ImGui::TextDisabled("(domyslna)");
+            }
+
             if (ImGui::Button("Usun wierzcholek"))
             {
                 editor.removeVertex(*poly, scene.selectedVertexIdx);
@@ -110,6 +144,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
         if (ImGui::CollapsingHeader("1. Instrukcja obslugi", ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::BulletText("LPM (przeciaganie): Przesuwanie wierzcholka.");
+            ImGui::BulletText("Wybrany wierzcholek: w panelu mozna wybrac ciaglosc G0 / G1 / C1 (tylko dozwolone).");
             ImGui::BulletText("F1: Wlaczenie / wylaczenie okna dokumentacji.");
         }
         ImGui::End();

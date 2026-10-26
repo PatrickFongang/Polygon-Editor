@@ -71,6 +71,17 @@ bool PolygonEditor::removeVertex(Polygon& polygon, size_t vertexIndex)
     return true;
 }
 
+bool PolygonEditor::setContinuity(Vertex& vertex, Continuity continuity)
+{
+    if (!ContinuityPolicy::isAllowed(vertex, continuity))
+        return false;
+
+    vertex.setContinuity(continuity);
+    vertex.hasExplicitContinuity = true;
+    sanitizeAndNotify({&vertex});
+    return true;
+}
+
 void PolygonEditor::sanitizeAndNotify(const std::vector<Vertex*>& vertices)
 {
     ContinuityPolicy::sanitize(vertices);

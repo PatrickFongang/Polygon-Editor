@@ -516,6 +516,47 @@ static void testRemoveVertexNextToCurve() {
     CHECK(ContinuityPolicy::effective(*poly->getVertex(2)) == Continuity::G0); // D: segment, segment
 }
 
+static void testSetContinuity() {
+    auto square = makeSquare();
+    PolygonEditor editor = makeEditor();
+    Vertex* a = square->getVertex(0);
+    Vertex* b = square->getVertex(1);
+
+    // between two segments there is nothing to choose
+    CHECK(!editor.setContinuity(*b, Continuity::G1));
+    CHECK(!b->hasExplicitContinuity);
+
+    // Bezier curve: C1 is allowed, the choice is explicit and gets enforced right away
+    editor.toggleEdgeType(*square, 0, EdgeType::Bezier);
+    CHECK(editor.setContinuity(*b, Continuity::C1));
+    CHECK(b->getContinuity() == Continuity::C1 && b->hasExplicitContinuity);
+    CHECK(near(static_cast<BezierEdge*>(square->getEdge(0))->tangentAt(EdgeEnd::End), square->getEdge(1)->tangentAt(EdgeEnd::Start)));
+
+    // G0 lets the curve go
+    CHECK(editor.setContinuity(*b, Continuity::G0));
+    static_cast<BezierEdge*>(square->getEdge(0))->getControlPoint2()->setPosition({60, 40});
+    editor.enforceAll(*square);
+    CHECK(near(static_cast<BezierEdge*>(square->getEdge(0))->getControlPoint2()->getPosition(), V(60, 40)));
+
+    // arc: G1 at A is anchored, G0 releases the anchor and the arc is a semicircle again
+    // (D is moved first, because the tangent of the square is perpendicular to the chord and gives a semicircle anyway)
+    editor.moveVertex(*square, 3, {-40, 100});
+    editor.toggleEdgeType(*square, 0, EdgeType::Arc);
+    auto* arc = static_cast<ArcEdge*>(square->getEdge(0));
+    CHECK(a->getContinuity() == Continuity::G1);
+    CHECK(!near(arc->geometry().radius, 50.0f));
+    CHECK(editor.setContinuity(*a, Continuity::G0));
+    CHECK(near(arc->geometry().radius, 50.0f));
+    CHECK(a->hasExplicitContinuity);
+
+    // now B may take over the only G1 end of the arc, and A may not any more
+    CHECK(editor.setContinuity(*b, Continuity::G1));
+    CHECK(!editor.setContinuity(*a, Continuity::G1));
+    CHECK(satisfiedAt(*b));
+    CHECK(!editor.setContinuity(*b, Continuity::C1)); // no C1 on arcs
+    CHECK(b->getContinuity() == Continuity::G1);
+}
+
 int main() {
     testG0();
     testG1();
@@ -544,6 +585,7 @@ int main() {
     testArcFollowsNeighbourWhenMoved();
     testSplitAndRemove();
     testRemoveVertexNextToCurve();
+    testSetContinuity();
 
     if (failures == 0)
         std::printf("all continuity tests passed\n");

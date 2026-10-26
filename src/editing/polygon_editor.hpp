@@ -4,8 +4,10 @@
 #include <SFML/System/Vector2.hpp>
 #include "post_edit_rule.hpp"
 #include "../enum/edge_type.hpp"
+#include "../enum/continuity.hpp"
 
 class Polygon;
+class Vertex;
 struct ControlHandle;
 
 // Entry point for edits of polygons. Applies an edit to the model and then lets the registered rules
@@ -30,6 +32,11 @@ public:
 
     // removes the vertex (the polygon keeps at least 3); returns false if it was not possible
     bool removeVertex(Polygon& polygon, size_t vertexIndex);
+
+    // sets the continuity chosen by the user at the vertex; refused (false) if the policy does not allow it.
+    // The choice is marked as explicit, so defaults no longer overwrite it, and tangents imposed on the
+    // adjacent arcs are released and anchored again by the rules if the new class needs it.
+    bool setContinuity(Vertex& vertex, Continuity continuity);
 
     // checks the rules at all vertices, e.g. after a polygon has been built
     void enforceAll(Polygon& polygon);
