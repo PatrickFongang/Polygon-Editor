@@ -26,4 +26,4 @@ test: $(TEST_SRC)
 
 # Reguła czyszcząca
 clean:
-	rm -f $(OBJS) app
+	rm -f $(OBJS) app
