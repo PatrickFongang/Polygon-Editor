@@ -1,10 +1,7 @@
 #include "ui_manager.hpp"
 #include "imgui.h"
-#include "../model/edge/line_edge.hpp"
-#include "../model/edge/bezier_edge.hpp"
-#include "../model/edge/arc_edge.hpp"
 
-UIManager::UIManager()
+UIManager::UIManager(PolygonEditor &polygonEditor) : editor(polygonEditor)
 {
     drawingAlgorithms = {
         {"Biblioteczny (SFML)", [](sf::RenderWindow &w)
@@ -35,6 +32,10 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
     if (ImGui::Button("Resetuj do sceny poczatkowej"))
     {
         scene.initPredefinedScene();
+        for (auto &polygon : scene.getPolygons())
+        {
+            editor.enforceAll(*polygon);
+        }
     }
     ImGui::SameLine();
     if (ImGui::Button("Dokumentacja (F1)"))
@@ -56,7 +57,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
 
         if (ImGui::Button("Dodaj wierzcholek na srodku"))
         {
-            poly->splitEdgeAtMidpoint(eIdx);
+            editor.splitEdgeAtMidpoint(*poly, eIdx);
             scene.primarySelectedEdge.invalidate();
         }
 
@@ -65,17 +66,17 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
             ImGui::Text("Typ krawedzi:");
             if (ImGui::Button("Odcinek"))
             {
-                poly->replaceEdge(eIdx, std::make_unique<LineEdge>(edge->getVertex1(), edge->getVertex2()));
+                editor.toggleEdgeType(*poly, eIdx, EdgeType::Line);
             }
             ImGui::SameLine();
             if (ImGui::Button("Bezier 3. st."))
             {
-                poly->replaceEdge(eIdx, std::make_unique<BezierEdge>(edge->getVertex1(), edge->getVertex2()));
+                editor.toggleEdgeType(*poly, eIdx, EdgeType::Bezier);
             }
             ImGui::SameLine();
             if (ImGui::Button("Luk okregu"))
             {
-                poly->replaceEdge(eIdx, std::make_unique<ArcEdge>(edge->getVertex1(), edge->getVertex2()));
+                editor.toggleEdgeType(*poly, eIdx, EdgeType::Arc);
             }
         }
     }
@@ -94,7 +95,7 @@ void UIManager::renderUI(Scene &scene, sf::RenderWindow &window, bool &showDocs)
                         scene.selectedPolygonIdx, scene.selectedVertexIdx);
             if (ImGui::Button("Usun wierzcholek"))
             {
-                poly->removeVertex(scene.selectedVertexIdx);
+                editor.removeVertex(*poly, scene.selectedVertexIdx);
                 scene.selectedVertexIdx = -1;
             }
         }

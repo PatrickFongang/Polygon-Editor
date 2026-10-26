@@ -43,7 +43,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
                 auto &polygons = scene.getPolygons();
                 if (scene.selectedPolygonIdx < static_cast<int>(polygons.size()))
                 {
-                    polygons[scene.selectedPolygonIdx]->removeVertex(scene.selectedVertexIdx);
+                    editor.removeVertex(*polygons[scene.selectedPolygonIdx], scene.selectedVertexIdx);
                     scene.selectedVertexIdx = -1;
                     scene.primarySelectedEdge.invalidate();
                 }
@@ -181,7 +181,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
             {
                 if (distance(mousePos, vertices[vIdx]->getPosition()) <= HIT_RADIUS)
                 {
-                    polygons[pIdx]->removeVertex(vIdx);
+                    editor.removeVertex(*polygons[pIdx], vIdx);
                     scene.selectedVertexIdx = -1;
                     scene.primarySelectedEdge.invalidate();
                     return;
@@ -197,7 +197,7 @@ void InputHandler::handleEvent(const sf::Event &event, const sf::RenderWindow &w
             {
                 if (edges[eIdx]->distanceToPoint(mousePos) <= HIT_RADIUS)
                 {
-                    polygons[pIdx]->splitEdgeAtMidpoint(eIdx);
+                    editor.splitEdgeAtMidpoint(*polygons[pIdx], eIdx);
                     scene.selectedVertexIdx = -1;
                     scene.primarySelectedEdge.invalidate();
                     return;

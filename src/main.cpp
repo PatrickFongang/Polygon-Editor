@@ -35,7 +35,7 @@ int main() {
         editor.enforceAll(*polygon);
     }
 
-    UIManager uiManager;
+    UIManager uiManager(editor);
     InputHandler inputHandler(editor);
     
     bool showDocs = false; 

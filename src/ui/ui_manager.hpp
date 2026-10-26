@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include "../scene/scene.hpp"
+#include "../editing/polygon_editor.hpp"
 #include "../utils/drawer.hpp"
 #include "../utils/library_drawer.hpp"
 #include "../utils/bresenham_drawer.hpp"
@@ -20,8 +21,10 @@ private:
     
     float targetEdgeLength = 50.0f;
 
+    PolygonEditor& editor;
+
 public:
-    UIManager();
+    explicit UIManager(PolygonEditor& polygonEditor);
     
     void renderUI(Scene& scene, sf::RenderWindow& window, bool& showDocs);
 };

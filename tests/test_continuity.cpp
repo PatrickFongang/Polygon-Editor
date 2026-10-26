@@ -11,6 +11,8 @@
 #include "builder/polygon_builder.hpp"
 #include "editing/polygon_editor.hpp"
 #include "editing/continuity_enforcer.hpp"
+#include "model/continuity_policy.hpp"
+#include <algorithm>
 
 static int failures = 0;
 
@@ -307,6 +309,213 @@ static void testG0IsLeftAlone() {
     CHECK(near(static_cast<BezierEdge*>(poly->getEdge(0))->getControlPoint2()->getPosition(), cpBefore));
 }
 
+static bool contains(const std::vector<Continuity>& list, Continuity c) {
+    return std::find(list.begin(), list.end(), c) != list.end();
+}
+
+static std::unique_ptr<Polygon> makeSquare() {
+    return PolygonBuilder()
+        .addVertex(0, 0)
+        .addVertex(100, 0)
+        .addVertex(100, 100)
+        .addVertex(0, 100)
+        .closePolygon()
+        .build();
+}
+
+static void testArcAnchoredAtStart() {
+    Vertex a({0, 0}), b({100, 0});
+    ArcEdge arc(&a, &b);
+    CHECK(near(arc.geometry().radius, 50.0f)); // no anchor: semicircle
+
+    arc.adaptTangent(EdgeEnd::Start, {1, 1});
+    auto g = arc.geometry();
+    CHECK(!g.straight);
+    CHECK(near(g.radius, 100.0f / (2.0f * std::sin(M_PI / 4)), 0.01f));
+    CHECK(near(arc.pointAt(g, 0.0f), a.getPosition()));
+    CHECK(near(arc.pointAt(g, 1.0f), b.getPosition()));
+    CHECK(near(vec::cross(vec::normalized(arc.tangentAt(EdgeEnd::Start)), vec::normalized(V(1, 1))), 0.0f, 1e-4f));
+    CHECK(vec::dot(arc.tangentAt(EdgeEnd::Start), V(1, 1)) > 0.0f);
+
+    // the arc leaves a in the direction (1, 1) and curves to the right (towards the chord)
+    CHECK(arc.pointAt(g, 0.01f).y > 0.0f);
+
+    arc.releaseTangent(EdgeEnd::End); // another end: nothing happens
+    CHECK(near(arc.geometry().radius, g.radius));
+    arc.releaseTangent(EdgeEnd::Start);
+    CHECK(near(arc.geometry().radius, 50.0f));
+}
+
+static void testArcAnchoredAtEnd() {
+    Vertex a({0, 0}), b({100, 0});
+    ArcEdge arc(&a, &b);
+
+    arc.adaptTangent(EdgeEnd::End, {1, -1});
+    auto g = arc.geometry();
+    CHECK(!g.straight);
+    CHECK(near(arc.pointAt(g, 0.0f), a.getPosition()));
+    CHECK(near(arc.pointAt(g, 1.0f), b.getPosition()));
+    CHECK(near(vec::cross(vec::normalized(arc.tangentAt(EdgeEnd::End)), vec::normalized(V(1, -1))), 0.0f, 1e-4f));
+    CHECK(vec::dot(arc.tangentAt(EdgeEnd::End), V(1, -1)) > 0.0f);
+
+    // the arc keeps the tangent given at the end also when the other vertex moves
+    a.setPosition({-40, 30});
+    g = arc.geometry();
+    CHECK(near(arc.pointAt(g, 0.0f), a.getPosition()));
+    CHECK(near(arc.pointAt(g, 1.0f), b.getPosition()));
+    CHECK(near(vec::cross(vec::normalized(arc.tangentAt(EdgeEnd::End)), vec::normalized(V(1, -1))), 0.0f, 1e-4f));
+}
+
+static void testArcTangentMatchesFiniteDifference() {
+    for (EdgeEnd anchorEnd : {EdgeEnd::Start, EdgeEnd::End}) {
+        Vertex a({10, 20}), b({120, 60});
+        ArcEdge arc(&a, &b);
+        arc.adaptTangent(anchorEnd, {3, -2});
+        auto g = arc.geometry();
+        const float h = 1e-3f;
+        V numStart = (arc.pointAt(g, h) - arc.pointAt(g, 0.0f)) / h;
+        V numEnd = (arc.pointAt(g, 1.0f) - arc.pointAt(g, 1.0f - h)) / h;
+        CHECK(near(arc.tangentAt(EdgeEnd::Start), numStart, 0.5f));
+        CHECK(near(arc.tangentAt(EdgeEnd::End), numEnd, 0.5f));
+    }
+}
+
+static void testArcStraightWhenTangentAlongChord() {
+    Vertex a({0, 0}), b({100, 0});
+    ArcEdge arc(&a, &b);
+    arc.adaptTangent(EdgeEnd::Start, {5, 0});
+    CHECK(arc.geometry().straight);
+    CHECK(near(arc.tangentAt(EdgeEnd::Start), V(100, 0)));
+    CHECK(near(arc.distanceToPoint({50, 7}), 7.0f, 0.01f));
+}
+
+static void testArcDistanceToPoint() {
+    Vertex a({0, 0}), b({100, 0});
+    ArcEdge arc(&a, &b);
+    // the semicircle bulges to the -y side: (50, -50) lies on it
+    CHECK(near(arc.distanceToPoint({50, -50}), 0.0f, 0.5f));
+    CHECK(near(arc.distanceToPoint({50, -60}), 10.0f, 0.5f));
+}
+
+static void testPolicyAllowed() {
+    auto square = makeSquare();
+    Vertex* v = square->getVertex(1);
+    CHECK(ContinuityPolicy::allowed(*v) == std::vector<Continuity>{Continuity::G0}); // between two segments
+
+    auto chain = makeChain(Continuity::G1, Continuity::G1);
+    CHECK(ContinuityPolicy::allowed(*chain->getVertex(1)) ==
+          (std::vector<Continuity>{Continuity::G0, Continuity::G1, Continuity::C1})); // Bezier - segment
+}
+
+static void testPolicyWithArcs() {
+    auto square = makeSquare();
+    PolygonEditor editor = makeEditor();
+    editor.toggleEdgeType(*square, 0, EdgeType::Arc); // A - B
+    Vertex* a = square->getVertex(0);
+    Vertex* b = square->getVertex(1);
+
+    CHECK(a->getContinuity() == Continuity::G1);  // the first end of an arc gets the default
+    CHECK(b->getContinuity() == Continuity::G0);  // the second one cannot be G1 as well
+    CHECK(!contains(ContinuityPolicy::allowed(*b), Continuity::G1));
+    CHECK(!contains(ContinuityPolicy::allowed(*a), Continuity::C1)); // arcs have no C1
+    CHECK(satisfiedAt(*a));
+
+    // a second arc next to the first one: the vertex between two arcs cannot be G1
+    editor.toggleEdgeType(*square, 1, EdgeType::Arc); // B - C
+    CHECK(ContinuityPolicy::allowed(*b) == std::vector<Continuity>{Continuity::G0});
+    CHECK(square->getVertex(2)->getContinuity() == Continuity::G1); // the free end of the second arc
+}
+
+static void testSanitizeKeepsExplicitChoice() {
+    auto square = makeSquare();
+    Vertex* b = square->getVertex(1);
+    b->setContinuity(Continuity::C1);
+    b->hasExplicitContinuity = true;
+    PolygonEditor editor = makeEditor();
+
+    // C1 is fine next to a Bezier curve and survives
+    editor.toggleEdgeType(*square, 0, EdgeType::Bezier);
+    CHECK(b->getContinuity() == Continuity::C1);
+    CHECK(satisfiedAt(*b));
+
+    // an arc does not have C1, the explicit choice is downgraded to G1 and it wins the G1 end over the default of A
+    editor.toggleEdgeType(*square, 0, EdgeType::Arc);
+    CHECK(b->getContinuity() == Continuity::G1);
+    CHECK(square->getVertex(0)->getContinuity() == Continuity::G0);
+    CHECK(satisfiedAt(*b));
+
+    // back to segments: nothing to be continuous, the vertex remembers the choice
+    editor.toggleEdgeType(*square, 0, EdgeType::Line);
+    CHECK(b->getContinuity() == Continuity::G1);
+    CHECK(ContinuityPolicy::effective(*b) == Continuity::G0);
+}
+
+static void testToggleToBezierAlignsControlPoints() {
+    auto square = makeSquare();
+    PolygonEditor editor = makeEditor();
+    editor.toggleEdgeType(*square, 0, EdgeType::Bezier);
+
+    CHECK(square->getVertex(0)->getContinuity() == Continuity::G1);
+    CHECK(square->getVertex(1)->getContinuity() == Continuity::G1);
+    CHECK(satisfiedAt(*square->getVertex(0)));
+    CHECK(satisfiedAt(*square->getVertex(1)));
+    // the segments around did not move, the new curve adapted
+    CHECK(near(square->getVertex(3)->getPosition(), V(0, 100)));
+    CHECK(near(square->getVertex(2)->getPosition(), V(100, 100)));
+}
+
+static void testArcFollowsNeighbourWhenMoved() {
+    auto square = makeSquare();
+    PolygonEditor editor = makeEditor();
+    editor.toggleEdgeType(*square, 0, EdgeType::Arc);
+    Vertex* a = square->getVertex(0);
+
+    editor.moveVertex(*square, 3, {-60, 120}); // turns the segment D - A, which drives the arc at A
+    CHECK(satisfiedAt(*a));
+    editor.moveVertex(*square, 1, {140, 30});  // the free end of the arc
+    CHECK(satisfiedAt(*a));
+    editor.moveVertex(*square, 0, {10, -20});  // the anchored vertex itself
+    CHECK(satisfiedAt(*a));
+}
+
+static void testSplitAndRemove() {
+    auto poly = makeChain(Continuity::G1, Continuity::G1); // A - B (Bezier) - C - D (Bezier) - A
+    PolygonEditor editor = makeEditor();
+    editor.enforceAll(*poly);
+
+    editor.splitEdgeAtMidpoint(*poly, 0); // splits the Bezier edge A - B
+    CHECK(poly->getVertexCount() == 5);
+    CHECK(poly->getEdgeCount() == 5);
+    Vertex* middle = poly->getVertex(1);
+    CHECK(near(middle->getPosition(), V(50, 0)));
+    CHECK(ContinuityPolicy::effective(*middle) == Continuity::G0); // between two segments
+    // B is now between a segment and the segment B - C: nothing to enforce, and nothing crashes
+    CHECK(!poly->getEdge(0)->isCurved() && !poly->getEdge(1)->isCurved());
+
+    // removing a vertex joins its neighbours with a segment
+    CHECK(editor.removeVertex(*poly, 1));
+    CHECK(poly->getVertexCount() == 4);
+    CHECK(poly->getEdgeCount() == 4);
+    CHECK(satisfiedAt(*poly->getVertex(2)));
+
+    // a triangle cannot lose a vertex
+    auto triangle = PolygonBuilder().addVertex(0, 0).addVertex(10, 0).addVertex(0, 10).closePolygon().build();
+    CHECK(!editor.removeVertex(*triangle, 0));
+    CHECK(triangle->getVertexCount() == 3);
+}
+
+static void testRemoveVertexNextToCurve() {
+    auto poly = makeChain(Continuity::G1, Continuity::G1); // C is between a segment and the Bezier C - D
+    PolygonEditor editor = makeEditor();
+    editor.enforceAll(*poly);
+
+    CHECK(editor.removeVertex(*poly, 2)); // removes C: B - D becomes a segment, B and D are re-checked
+    Vertex* b = poly->getVertex(1);
+    CHECK(!poly->getEdge(1)->isCurved());
+    CHECK(satisfiedAt(*b));
+    CHECK(ContinuityPolicy::effective(*poly->getVertex(2)) == Continuity::G0); // D: segment, segment
+}
+
 int main() {
     testG0();
     testG1();
@@ -323,6 +532,18 @@ int main() {
     testHitTestMiss();
     testDriverBezierBezierC1();
     testG0IsLeftAlone();
+    testArcAnchoredAtStart();
+    testArcAnchoredAtEnd();
+    testArcTangentMatchesFiniteDifference();
+    testArcStraightWhenTangentAlongChord();
+    testArcDistanceToPoint();
+    testPolicyAllowed();
+    testPolicyWithArcs();
+    testSanitizeKeepsExplicitChoice();
+    testToggleToBezierAlignsControlPoints();
+    testArcFollowsNeighbourWhenMoved();
+    testSplitAndRemove();
+    testRemoveVertexNextToCurve();
 
     if (failures == 0)
         std::printf("all continuity tests passed\n");

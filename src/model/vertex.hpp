@@ -13,12 +13,12 @@ class Vertex
 public:
     bool isSelected = false;              // Flag to indicate if the vertex is selected
     bool isHovered = false;               // Flag to indicate if the vertex is hovered over
-    bool hasPredefinedContinuity = false; // Flag to indicate if the vertex has a predefined continuity
+    bool hasExplicitContinuity = false;   // Set when the continuity was chosen explicitly (not a default of the policy)
 
     Vertex()
-        : position(0.f, 0.f), color(sf::Color::White), continuity(Continuity::G1) {}
+        : position(0.f, 0.f), color(sf::Color::White), continuity(Continuity::G0) {}
 
-    Vertex(sf::Vector2f pos, sf::Color col = sf::Color::White, Continuity cont = Continuity::G1)
+    Vertex(sf::Vector2f pos, sf::Color col = sf::Color::White, Continuity cont = Continuity::G0)
         : position(pos), color(col), continuity(cont) {}
 
     sf::Vector2f getPosition() const { return position; }

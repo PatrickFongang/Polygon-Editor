@@ -11,10 +11,15 @@ private:
     Vertex* firstVertex = nullptr;
     Vertex* lastVertex = nullptr;
 
+    PolygonBuilder& addVertex(float x, float y, Continuity continuity, bool isExplicit);
+
 public:
     PolygonBuilder();
     
-    PolygonBuilder& addVertex(float x, float y, Continuity continuity = Continuity::G0);
+    // the continuity is decided by the ContinuityPolicy once the polygon is built
+    PolygonBuilder& addVertex(float x, float y);
+    // the continuity is fixed explicitly (the policy only downgrades it if it is impossible)
+    PolygonBuilder& addVertex(float x, float y, Continuity continuity);
     PolygonBuilder& withLastEdgeAsBezier();
     PolygonBuilder& withLastEdgeAsArc();
     PolygonBuilder& closePolygon();

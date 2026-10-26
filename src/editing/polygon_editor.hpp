@@ -3,6 +3,7 @@
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 #include "post_edit_rule.hpp"
+#include "../enum/edge_type.hpp"
 
 class Polygon;
 struct ControlHandle;
@@ -20,6 +21,16 @@ public:
     // (the neighbouring edge adapts, which may require moving the vertices of a neighbouring line)
     void moveControlPoint(const ControlHandle& handle, const sf::Vector2f& position);
 
+    // changes the type of the edge (segment, Bezier curve, arc); the vertices at its ends get the default
+    // continuity unless the user chose one, and the neighbouring edges adapt to it
+    void toggleEdgeType(Polygon& polygon, size_t edgeIndex, EdgeType type);
+
+    // adds a vertex in the middle of the edge; the edge is replaced by two segments
+    void splitEdgeAtMidpoint(Polygon& polygon, size_t edgeIndex);
+
+    // removes the vertex (the polygon keeps at least 3); returns false if it was not possible
+    bool removeVertex(Polygon& polygon, size_t vertexIndex);
+
     // checks the rules at all vertices, e.g. after a polygon has been built
     void enforceAll(Polygon& polygon);
 
@@ -27,4 +38,6 @@ private:
     std::vector<std::unique_ptr<PostEditRule>> rules;
 
     void notify(const EditEvent& event);
+    // restores the continuity around vertices whose edges have just been changed
+    void sanitizeAndNotify(const std::vector<Vertex*>& vertices);
 };

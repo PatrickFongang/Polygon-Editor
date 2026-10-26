@@ -1,6 +1,7 @@
 #include "continuity_enforcer.hpp"
 #include <deque>
 #include "../model/vertex.hpp"
+#include "../model/continuity_policy.hpp"
 #include "../model/edge/edge.hpp"
 
 void ContinuityEnforcer::apply(const EditEvent& event)
@@ -37,15 +38,15 @@ std::vector<Vertex*> ContinuityEnforcer::enforceAt(Vertex& vertex, Edge* driver)
     if (!prev || !next)
         return {};
 
-    Continuity continuity = vertex.getContinuity();
-    if (!prev->supports(continuity) || !next->supports(continuity))
+    Continuity continuity = ContinuityPolicy::effective(vertex);
+    if (continuity == Continuity::G0)
         return {};
 
     // both tangents are oriented along the traversal of the polygon
     sf::Vector2f incoming = prev->tangentAt(EdgeEnd::End);
     sf::Vector2f outgoing = next->tangentAt(EdgeEnd::Start);
 
-    const ContinuityStrategy& strategy = vertex.getContinuityStrategy();
+    const ContinuityStrategy& strategy = ContinuityStrategy::get(continuity);
     if (strategy.isSatisfied(incoming, outgoing, TOLERANCE))
         return {};
 

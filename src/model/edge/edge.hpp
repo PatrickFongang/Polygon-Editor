@@ -63,6 +63,15 @@ public:
     // can this edge be a neighbour of a vertex with the given continuity class?
     virtual bool supports(Continuity continuity) const { return true; }
 
+    // forgets a tangent imposed at the given end (an arc is anchored by the tangent, see ArcEdge)
+    virtual void releaseTangent(EdgeEnd end) {}
+
+    // is the edge a curve? Continuity at a vertex only matters if at least one adjacent edge is curved
+    virtual bool isCurved() const = 0;
+
+    // true if the tangents of the edge come from a tangent imposed at one end (it can follow only one end)
+    virtual bool derivesTangent() const { return false; }
+
     // how willing the edge is to give way when a continuity relation has to be restored: lower adapts first
     virtual int adaptCost() const = 0;
 
