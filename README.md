@@ -67,6 +67,227 @@ Najważniejsze decyzje projektowe:
 * **`PolygonEditor`** jest jedynym wejściem do edycji i stosuje reguły (`PostEditRule`) w pętli do punktu stałego, bo ciągłość i ograniczenia mogą się wzajemnie psuć. Dokłada też sprzątanie: zmiana typu, podział lub usunięcie wierzchołka usuwa związane z krawędzią ograniczenia i porządkuje ciągłość.
 * **Rozszerzalność:** nowy rodzaj ograniczenia, krawędzi, klasy ciągłości lub reguły po edycji to nowa klasa bez zmian w istniejącym kodzie (patrz zakładka „Rozszerzanie" w oknie F1).
 
+## Polimorfizm w projekcie (diagramy UML)
+
+W projekcie są cztery hierarchie polimorficzne. Klient (np. `ContinuityEnforcer`, `Scene`) zawsze zna tylko interfejs, więc nowy typ to nowa klasa, a istniejący kod się nie zmienia (zasada otwarte-zamknięte). Diagramy są w formacie Mermaid i renderują się na GitHubie.
+
+### 1. Krawędzie: jeden interfejs stycznych, trzy geometrie
+
+`ContinuityEnforcer` pyta krawędź tylko o `tangentAt` i każe jej się dopasować przez `adaptTangent`. Nie wie, czy ma przed sobą odcinek, krzywą czy łuk: odcinek obraca się wokół wierzchołka, Bezier przesuwa punkt kontrolny, a łuk zapamiętuje kotwicę.
+
+```mermaid
+classDiagram
+    direction TB
+    class Edge {
+        <<abstract>>
+        #Vertex v1
+        #Vertex v2
+        +draw(Drawer) void
+        +distanceToPoint(Vector2f) float
+        +tangentAt(EdgeEnd) Vector2f
+        +adaptTangent(EdgeEnd, Vector2f) vector~Vertex~
+        +releaseTangent(EdgeEnd) void
+        +supports(Continuity) bool
+        +adaptCost() int
+        +isCurved() bool
+        +derivesTangent() bool
+        +type() EdgeType
+        +hitTestControlPoint(Vector2f, float) optional~ControlHandle~
+    }
+    class LineEdge {
+        adaptCost = 2
+        obraca odcinek, przesuwa drugi koniec
+    }
+    class BezierEdge {
+        -controlPoint1 Vertex
+        -controlPoint2 Vertex
+        adaptCost = 1
+        przesuwa punkt kontrolny
+    }
+    class ArcEdge {
+        -anchor optional~Anchor~
+        adaptCost = 0
+        zapamietuje kotwice stycznej
+        brak C1
+    }
+    Edge <|-- LineEdge
+    Edge <|-- BezierEdge
+    Edge <|-- ArcEdge
+
+    class Vertex {
+        -position Vector2f
+        -continuity Continuity
+        +hasExplicitContinuity bool
+        +moveWithEdges(Vector2f) void
+    }
+    class Polygon {
+        -vertices vector~Vertex~
+        -edges vector~Edge~
+        +splitEdge() void
+        +removeVertex() bool
+    }
+    Polygon *-- Vertex : wlasciciel
+    Polygon *-- Edge : wlasciciel
+    Edge --> Vertex : v1, v2
+    Vertex --> Edge : prevEdge, nextEdge
+    BezierEdge *-- Vertex : 2 punkty kontrolne
+```
+
+### 2. Ciągłość: strategia niezależna od typu krawędzi
+
+Strategia dostaje tylko dwa wektory styczne, więc ta sama klasa `G1Strategy` obsługuje Bezier-odcinek, Bezier-łuk i inne pary.
+
+```mermaid
+classDiagram
+    direction LR
+    class ContinuityStrategy {
+        <<abstract>>
+        +getType() Continuity
+        +desiredFollower(Vector2f driver, Vector2f follower) optional~Vector2f~
+        +isSatisfied(Vector2f, Vector2f, float) bool
+        +get(Continuity)$ ContinuityStrategy
+    }
+    class G0Strategy {
+        brak warunku
+    }
+    class G1Strategy {
+        ten sam kierunek, dlugosc nastepcy zachowana
+    }
+    class C1Strategy {
+        rowne wektory
+    }
+    ContinuityStrategy <|-- G0Strategy
+    ContinuityStrategy <|-- G1Strategy
+    ContinuityStrategy <|-- C1Strategy
+
+    class ContinuityPolicy {
+        +DEFAULT Continuity
+        +isAllowed(Vertex, Continuity)$ bool
+        +allowed(Vertex)$ vector~Continuity~
+        +defaultFor(Vertex)$ Continuity
+        +effective(Vertex)$ Continuity
+        +sanitize(Vertex)$ void
+    }
+    class ContinuityEnforcer {
+        +apply(EditEvent) vector~Vertex~
+        -enforceAt(Vertex, Edge driver)$ vector~Vertex~
+    }
+    class Edge {
+        <<abstract>>
+    }
+    ContinuityEnforcer ..> ContinuityStrategy : relacja stycznych
+    ContinuityEnforcer ..> ContinuityPolicy : klasa w wierzcholku
+    ContinuityEnforcer ..> Edge : tangentAt, adaptTangent
+    ContinuityPolicy ..> Edge : supports, isCurved, derivesTangent
+```
+
+### 3. Edycja: reguły po edycji i ograniczenia
+
+`PolygonEditor` nie wie, jakie reguły ma uruchomić: trzyma listę `PostEditRule` i powtarza ją do punktu stałego. `ConstraintSolver` z kolei nie wie, jakie ograniczenia rzutuje: woła `project` na interfejsie `Constraint`.
+
+```mermaid
+classDiagram
+    direction TB
+    class PolygonEditor {
+        -rules vector~PostEditRule~
+        +addRule(PostEditRule) void
+        +moveVertex() void
+        +moveControlPoint() void
+        +toggleEdgeType() void
+        +setEdgeLength() LengthConstraint
+        +addParallelConstraint() ParallelConstraint
+        -notify(EditEvent) void
+    }
+    class PostEditRule {
+        <<abstract>>
+        +apply(EditEvent) vector~Vertex~
+    }
+    class ContinuityEnforcer
+    class ConstraintSolver {
+        -MAX_PASSES = 50
+    }
+    PolygonEditor o-- PostEditRule : lista regul
+    PostEditRule <|-- ContinuityEnforcer
+    PostEditRule <|-- ConstraintSolver
+
+    class ConstraintSystem {
+        +add(Constraint) Constraint
+        +remove(Constraint) bool
+        +constraintsOf(Edge) vector~Constraint~
+        +removeInvolving(Edge) void
+    }
+    class Constraint {
+        <<abstract>>
+        +edges() vector~Edge~
+        +isSatisfied(float) bool
+        +project(PinnedSet) vector~Vertex~
+        +label() string
+    }
+    class LengthConstraint {
+        -length float
+        dzieli poprawke miedzy konce
+    }
+    class ParallelConstraint {
+        obraca krawedzie o czesci kata
+    }
+    class Edge {
+        <<abstract>>
+    }
+    Constraint <|-- LengthConstraint
+    Constraint <|-- ParallelConstraint
+    ConstraintSystem *-- Constraint : wlasciciel
+    Constraint --> Edge : wskazuje
+    ConstraintSolver --> ConstraintSystem : rzutuje wszystkie
+    PolygonEditor --> ConstraintSystem : sprzata przy zmianie topologii
+```
+
+### 4. Rysowanie: wymienialny algorytm
+
+Zmiana algorytmu (radio button) to podmiana obiektu `Drawer` w scenie. Odcinki, krzywe i łuki rysują się przez ten sam interfejs.
+
+```mermaid
+classDiagram
+    direction LR
+    class Drawer {
+        <<abstract>>
+        +drawLine(float, float, float, float) void
+        +setColor(Color) void
+    }
+    class LibraryDrawer {
+        uzywa sf Lines
+    }
+    class BresenhamDrawer {
+        wlasny algorytm Bresenhama
+    }
+    Drawer <|-- LibraryDrawer
+    Drawer <|-- BresenhamDrawer
+    class Scene {
+        -polygons vector~Polygon~
+        -constraints ConstraintSystem
+        -currentDrawer Drawer
+        +setDrawer(Drawer) void
+        +render() void
+    }
+    class Edge {
+        <<abstract>>
+        +draw(Drawer) void
+    }
+    Scene o-- Drawer : aktualny algorytm
+    Edge ..> Drawer : draw(Drawer)
+```
+
+### Gdzie dokładnie działa polimorfizm
+
+| Wywołanie przez interfejs | Kto woła | Co się dzieje zależnie od typu |
+|---|---|---|
+| `edge->tangentAt(end)` | `ContinuityEnforcer`, `ContinuityPolicy` | odcinek: `v2 - v1`; Bezier: `3 (P1 - P0)`; łuk: pochodna po okręgu |
+| `edge->adaptTangent(end, d)` | `ContinuityEnforcer` | odcinek obraca się, Bezier przesuwa punkt, łuk zapamiętuje kotwicę |
+| `edge->adaptCost()` | `ContinuityEnforcer` | wybór, która krawędź ustępuje (łuk, Bezier, odcinek) |
+| `strategy.desiredFollower(a, b)` | `ContinuityEnforcer` | G0 nic, G1 kierunek, C1 pełny wektor |
+| `constraint->project(pinned)` | `ConstraintSolver` | długość skaluje odcinek, równoległość obraca krawędzie |
+| `rule->apply(event)` | `PolygonEditor` | najpierw ciągłość, potem ograniczenia, w pętli do punktu stałego |
+| `edge->draw(drawer)`, `drawer.drawLine(...)` | `Scene` | dwa niezależne wymiary zmienności: kształt krawędzi i algorytm rysowania |
+
 ### Scena początkowa
 
 Scenę buduje `Scene::initPredefinedScene()` ([src/scene/scene.cpp](src/scene/scene.cpp)). Dodanie wielokąta lub ograniczenia to jedna linia:
