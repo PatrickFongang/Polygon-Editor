@@ -5,6 +5,8 @@ Scene::Scene(std::unique_ptr<Drawer> initialDrawer)
     : currentDrawer(std::move(initialDrawer)) {}
 
 void Scene::clearScene() {
+    // the constraints point at the edges of the polygons, so they go first
+    constraints.clear();
     polygons.clear();
     selectedPolygonIdx = -1;
     selectedVertexIdx = -1;

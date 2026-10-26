@@ -44,7 +44,12 @@ public:
 private:
     std::vector<std::unique_ptr<PostEditRule>> rules;
 
-    void notify(const EditEvent& event);
+    // Lets the rules restore their invariants. A rule can break what another one has fixed (a constraint turns a
+    // segment, so the continuity at its ends has to follow, and the other way round), therefore the rules are
+    // repeated, around the vertices that were moved, until nothing moves any more or the limit is reached.
+    void notify(EditEvent event);
+
+    static constexpr int MAX_ROUNDS = 20;
     // restores the continuity around vertices whose edges have just been changed
     void sanitizeAndNotify(const std::vector<Vertex*>& vertices);
 };

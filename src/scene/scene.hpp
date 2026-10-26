@@ -3,6 +3,7 @@
 #include <memory>
 #include <SFML/Graphics.hpp>
 #include "../model/polygon.hpp"
+#include "../model/constraint/constraint_system.hpp"
 #include "../utils/drawer.hpp"
 
 struct EdgeSelection {
@@ -17,6 +18,7 @@ class Scene {
 private:
     std::vector<std::unique_ptr<Polygon>> polygons;
     std::unique_ptr<Drawer> currentDrawer;
+    ConstraintSystem constraints;
 
 public:
     int selectedPolygonIdx = -1;
@@ -35,4 +37,5 @@ public:
     }
 
     std::vector<std::unique_ptr<Polygon>>& getPolygons() { return polygons; }
+    ConstraintSystem& getConstraints() { return constraints; }
 };

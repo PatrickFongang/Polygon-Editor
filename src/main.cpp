@@ -10,6 +10,7 @@
 #include "ui/input_handler.hpp"
 #include "editing/polygon_editor.hpp"
 #include "editing/continuity_enforcer.hpp"
+#include "editing/constraint_solver.hpp"
 
 int main() {
     // initialize SFML window
@@ -28,9 +29,10 @@ int main() {
     Scene scene(std::move(initialDrawer));
     scene.initPredefinedScene();
 
-    // edits go through the editor, which restores the continuity at the vertices after every change
+    // edits go through the editor, which restores the continuity and the constraints after every change
     PolygonEditor editor;
     editor.addRule(std::make_unique<ContinuityEnforcer>());
+    editor.addRule(std::make_unique<ConstraintSolver>(scene.getConstraints()));
     for (auto& polygon : scene.getPolygons()) {
         editor.enforceAll(*polygon);
     }

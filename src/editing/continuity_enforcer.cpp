@@ -4,8 +4,9 @@
 #include "../model/continuity_policy.hpp"
 #include "../model/edge/edge.hpp"
 
-void ContinuityEnforcer::apply(const EditEvent& event)
+std::vector<Vertex*> ContinuityEnforcer::apply(const EditEvent& event)
 {
+    std::vector<Vertex*> allMoved;
     struct Item
     {
         Vertex* vertex;
@@ -23,12 +24,14 @@ void ContinuityEnforcer::apply(const EditEvent& event)
 
         for (Vertex* moved : enforceAt(*item.vertex, item.driver))
         {
+            allMoved.push_back(moved);
             // a moved vertex changes the tangents of the lines around it
             work.push_back({moved, nullptr});
             for (Vertex* adjacent : moved->adjacentVertices())
                 work.push_back({adjacent, nullptr});
         }
     }
+    return allMoved;
 }
 
 std::vector<Vertex*> ContinuityEnforcer::enforceAt(Vertex& vertex, Edge* driver)

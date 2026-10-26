@@ -19,7 +19,7 @@ app: $(OBJS)
 
 # Testy jednostkowe (bez okna i bez ImGui); kazdy plik tests/test_<nazwa>.cpp daje osobny program
 TEST_LIB_SRC = $(filter-out src/main.cpp src/ui/% src/scene/%, $(SRC_FILES))
-TEST_NAMES = continuity constraints
+TEST_NAMES = continuity constraints solver
 
 test:
 	@for t in $(TEST_NAMES); do \

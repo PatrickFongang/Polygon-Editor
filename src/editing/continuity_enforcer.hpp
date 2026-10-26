@@ -14,7 +14,7 @@ class Edge;
 // Adapting a line moves its other vertex, so the check is repeated around every moved vertex.
 class ContinuityEnforcer : public PostEditRule {
 public:
-    void apply(const EditEvent& event) override;
+    std::vector<Vertex*> apply(const EditEvent& event) override;
 
 private:
     static constexpr float TOLERANCE = 1e-3f;

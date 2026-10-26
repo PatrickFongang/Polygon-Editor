@@ -17,6 +17,7 @@ void PolygonEditor::moveVertex(Polygon& polygon, size_t vertexIndex, const sf::V
     polygon.moveVertex(vertexIndex, position);
 
     EditEvent event;
+    event.pinned.push_back(vertex); // follows the cursor, constraints adapt to it
     event.seeds.push_back(vertex);
     for (Vertex* adjacent : vertex->adjacentVertices())
         event.seeds.push_back(adjacent);
@@ -27,8 +28,11 @@ void PolygonEditor::moveControlPoint(const ControlHandle& handle, const sf::Vect
 {
     handle.point->setPosition(position);
 
+    Vertex* vertex = handle.end == EdgeEnd::Start ? handle.edge->getVertex1() : handle.edge->getVertex2();
+
     EditEvent event;
-    event.seeds.push_back(handle.end == EdgeEnd::Start ? handle.edge->getVertex1() : handle.edge->getVertex2());
+    event.seeds.push_back(vertex);
+    event.pinned.push_back(vertex); // the control point travels with its vertex, so the user's point must not drift
     event.driver = handle.edge;
     notify(event);
 }
@@ -104,8 +108,26 @@ void PolygonEditor::enforceAll(Polygon& polygon)
     notify(event);
 }
 
-void PolygonEditor::notify(const EditEvent& event)
+void PolygonEditor::notify(EditEvent event)
 {
-    for (auto& rule : rules)
-        rule->apply(event);
+    for (int round = 0; round < MAX_ROUNDS; ++round)
+    {
+        std::vector<Vertex*> moved;
+        for (auto& rule : rules)
+        {
+            std::vector<Vertex*> movedByRule = rule->apply(event);
+            moved.insert(moved.end(), movedByRule.begin(), movedByRule.end());
+        }
+        if (moved.empty())
+            break;
+
+        // the driver and the pinned vertices stay: the user holds them during all the rounds
+        event.seeds.clear();
+        for (Vertex* vertex : moved)
+        {
+            event.seeds.push_back(vertex);
+            for (Vertex* adjacent : vertex->adjacentVertices())
+                event.seeds.push_back(adjacent);
+        }
+    }
 }
