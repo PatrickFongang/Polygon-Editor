@@ -17,12 +17,17 @@ app: $(OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Testy matematyki ciągłości (bez okna i bez ImGui)
-TEST_SRC = tests/test_continuity.cpp src/model/vertex.cpp src/model/edge/edge.cpp src/model/edge/line_edge.cpp src/model/edge/bezier_edge.cpp src/model/edge/arc_edge.cpp src/model/polygon.cpp src/builder/polygon_builder.cpp src/editing/polygon_editor.cpp src/editing/continuity_enforcer.cpp src/model/continuity_policy.cpp src/model/edge/edge_factory.cpp
+# Testy jednostkowe (bez okna i bez ImGui); kazdy plik tests/test_<nazwa>.cpp daje osobny program
+TEST_LIB_SRC = $(filter-out src/main.cpp src/ui/% src/scene/%, $(SRC_FILES))
+TEST_NAMES = continuity constraints
 
-test: $(TEST_SRC)
-	$(CXX) $(CXXFLAGS) $(TEST_SRC) -o tests/run_tests $(LDFLAGS)
-	./tests/run_tests
+test:
+	@for t in $(TEST_NAMES); do \
+		$(CXX) $(CXXFLAGS) tests/test_$$t.cpp $(TEST_LIB_SRC) -o tests/run_$${t}_tests $(LDFLAGS) || exit 1; \
+		./tests/run_$${t}_tests || exit 1; \
+	done
+
+.PHONY: test clean
 
 # Reguła czyszcząca
 clean:
